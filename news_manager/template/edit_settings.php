@@ -92,11 +92,15 @@
 </form>
 
 <script>
+  jQuery.extend(jQuery.validator.messages, {
+    required: "<?php i18n('news_manager/FIELD_IS_REQUIRED'); ?>"
+  });
+
   $(document).ready(function(){
     $("#settings").validate({
       errorClass: "invalid",
       rules: {
-        "excerpt-length": { min: 50 },
+        "excerpt-length": { min: 0 },
         "posts-per-page": { min: 1 },
         "recent-posts": { min: 1 }
       }

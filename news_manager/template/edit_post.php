@@ -4,6 +4,8 @@
  * News Manager edit post template
  */
 
+global $NMPAGEURL;
+
 ?>
 
 <h3 class="floated">
@@ -16,7 +18,7 @@
 </h3>
 <div class="edit-nav" >
   <?php
-  if (file_exists($file) && $private == '') {
+  if (!empty($NMPAGEURL) && $NMPAGEURL != '' && file_exists($file) && $private == '') {
     $url = nm_get_url('post') . $slug;
     ?>
     <a href="<?php echo $url; ?>" target="_blank">
@@ -33,7 +35,7 @@
 <form class="largeform" id="edit" action="load.php?id=news_manager" method="post" accept-charset="utf-8">
   <?php
   if (!empty($slug))
-    echo "<p><input name=\"current-slug\" type=\"hidden\" value=\"$slug\" /></p>";
+    echo '<input name="current-slug" type="hidden" value="',$slug,'" />';
   ?>
   <p>
     <input class="text title required" name="post-title" id="post-title" type="text" value="<?php echo $title; ?>" placeholder="<?php i18n('news_manager/POST_TITLE'); ?>" />
@@ -88,24 +90,30 @@
 </form>
 
 <script>
-  jQuery.extend(jQuery.validator.messages, {
-    required: "<?php i18n('news_manager/FIELD_IS_REQUIRED'); ?>",
-    dateISO: "<?php i18n('news_manager/ENTER_VALID_DATE'); ?>"
-  });
-
+  if ($.validator) {
+    jQuery.extend(jQuery.validator.messages, {
+      required: "<?php i18n('news_manager/FIELD_IS_REQUIRED'); ?>",
+      dateISO: "<?php i18n('news_manager/ENTER_VALID_DATE'); ?>"
+    });
+  }
+  
   $(document).ready(function(){
-    $.validator.addMethod("time", function(value, element) {
-        return this.optional(element) || /^([01]?[0-9]|2[0-3]):[0-5][0-9]/.test(value);
-    },
-    "<?php i18n('news_manager/ENTER_VALID_TIME'); ?>")
+    if ($.validator) {
+      $.validator.addMethod("time", function(value, element) {
+          return this.optional(element) || /^([01]?[0-9]|2[0-3]):[0-5][0-9]/.test(value);
+      },
+      "<?php i18n('news_manager/ENTER_VALID_TIME'); ?>")
+    }
 
-    $("#edit").validate({
-      errorClass: "invalid",
-      rules: {
-        "post-date": { dateISO: true },
-        "post-time": { time: true }
-      }
-    })
+    if ($.validator) {
+      $("#edit").validate({
+        errorClass: "invalid",
+        rules: {
+          "post-date": { dateISO: true },
+          "post-time": { time: true }
+        }
+      })
+    }
 
     $("#<?php echo (empty($data)) ? 'post-title' : 'metadata_toggle'; ?>").focus();
   });

@@ -135,18 +135,21 @@ function nm_get_url($query=false) {
  */
 function nm_get_parent() {
   global $NMPARENTURL, $NMPAGEURL;
-  if ($NMPARENTURL == '?') {
-    global $pagesArray;
-    if ($pagesArray) {
-      $NMPARENTURL = returnPageField($NMPAGEURL, 'parent');
-    } else {
-      $gsdata = getXML(GSDATAPAGESPATH.$NMPAGEURL.'.xml');
-      $NMPARENTURL = isset($gsdata->parent) ? $gsdata->parent : '';
+  if ($NMPAGEURL == '') {
+    $NMPARENTURL = '';
+  } else {
+    if ($NMPARENTURL == '?') {
+      global $pagesArray;
+      if ($pagesArray) {
+        $NMPARENTURL = returnPageField($NMPAGEURL, 'parent');
+      } else {
+        $gsdata = getXML(GSDATAPAGESPATH.$NMPAGEURL.'.xml');
+        $NMPARENTURL = isset($gsdata->parent) ? $gsdata->parent : '';
+      }
     }
   }
   return $NMPARENTURL;
 }
-
 
 /*******************************************************
  * @function nm_create_dir
@@ -213,12 +216,17 @@ function nm_create_excerpt($content) {
     $content = preg_replace('/\(%.*?%\)/', '', $content); // remove (% ... %)
     $content = preg_replace('/\{%.*?%\}/', '', $content); // remove {% ... %}
     $content = strip_tags($content);
-    if (strlen($content) > $len) {
-      if (function_exists('mb_substr'))
+    $content = preg_replace('/\s+/u', ' ', str_replace('&nbsp;', ' ', $content)); // remove whitespace
+    if (function_exists('mb_strlen')) {
+      if (mb_strlen($content, 'UTF-8') > $len) {
         $content = trim(mb_substr($content, 0, $len, 'UTF-8'));
-      else
+        $content .= i18n_r('news_manager/ELLIPSIS');
+      }
+    } else {
+      if (strlen($content) > $len) {
         $content = trim(substr($content, 0, $len));
-      $content .= i18n_r('news_manager/ELLIPSIS');
+        $content .= i18n_r('news_manager/ELLIPSIS');
+      }
     }
     return "<p>$content</p>";
   }
@@ -274,7 +282,7 @@ function nm_sitemap_include() {
  * @action insert necessary script/style sections into site header
  */
 function nm_header_include() {
-  if (isset($_GET['id']) && $_GET['id'] == 'news_manager' && isset($_GET['edit'])) {
+  if (isset($_GET['id']) && $_GET['id'] == 'news_manager' && (isset($_GET['edit']) || isset($_GET['settings']))) {
     if (!function_exists('register_script')) {
       // for GetSimple 3.0
       echo '<script type="text/javascript" src="//ajax.aspnetcdn.com/ajax/jquery.validate/1.10.0/jquery.validate.min.js"></script>';

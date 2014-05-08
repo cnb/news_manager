@@ -3,7 +3,7 @@
 /*
 Plugin Name: News Manager
 Description: A blog/news plugin for GetSimple
-Version: 2.4.5
+Version: 2.4.5.1
 Author: Rogier Koppejan
 Updated by: Carlos Navarro
 
@@ -17,7 +17,7 @@ $thisfile = basename(__FILE__, '.php');
 register_plugin(
   $thisfile,
   'News Manager',
-  '2.4.5',
+  '2.4.5.1',
   'Rogier Koppejan, Carlos Navarro',
   'http://www.cyberiada.org/cnb/news-manager/',
   'A blog/news plugin for GetSimple',
@@ -26,7 +26,7 @@ register_plugin(
 );
 
 # includes
-require_once('news_manager/inc/common.php');
+require_once(GSPLUGINPATH.'news_manager/inc/common.php');
 
 # language
 i18n_merge('news_manager') || i18n_merge('news_manager', 'en_US');

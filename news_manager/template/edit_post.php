@@ -18,7 +18,7 @@ global $NMPAGEURL;
 </h3>
 <div class="edit-nav" >
   <?php
-  if (!empty($NMPAGEURL) && $NMPAGEURL != '' && file_exists($file) && $private == '') {
+  if (!empty($NMPAGEURL) && $NMPAGEURL != '' && !$newpost && $private == '') {
     $url = nm_get_url('post') . $slug;
     ?>
     <a href="<?php echo $url; ?>" target="_blank">
@@ -34,7 +34,7 @@ global $NMPAGEURL;
 </div>
 <form class="largeform" id="edit" action="load.php?id=news_manager" method="post" accept-charset="utf-8">
   <?php
-  if (!empty($slug))
+  if (!$newpost)
     echo '<input name="current-slug" type="hidden" value="',$slug,'" />';
   ?>
   <p>
@@ -77,7 +77,7 @@ global $NMPAGEURL;
     &nbsp;&nbsp;<?php i18n('news_manager/OR'); ?>&nbsp;&nbsp;
     <a href="load.php?id=news_manager&amp;cancel" class="cancel"><?php i18n('news_manager/CANCEL'); ?></a>
     <?php
-    if (file_exists($file)) {
+    if (!$newpost) {
       ?>
       /
       <a href="load.php?id=news_manager&amp;delete=<?php echo $slug; ?>" class="cancel">

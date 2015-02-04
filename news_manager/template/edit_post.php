@@ -6,6 +6,44 @@
 
 global $NMPAGEURL;
 
+# image input field (since 3.0)
+global $NMSETTING;
+if (defined('NMIMAGEINPUT')) {
+  $imageinputpos = intval(NMIMAGEINPUT);
+  if ($imageinputpos < 0 || $imageinputpos > 4) $imageinputpos = 2;
+} else {
+  $imageinputpos = $NMSETTING['images'] != 'N' ? 2 : 0;
+}
+if ($imageinputpos > 0) {
+  global $SITEURL;
+  if (defined('NMIMAGEDIR')) {
+    $imagepath = '&path='.trim(NMIMAGEDIR, '/');
+  } else {
+    $imagepath = '';
+  }
+  $imageinputcode = '  <p>
+      <label for="post-image">'.i18n_r('news_manager/POST_IMAGE').':</label>
+      <input class="text short" id="post-image" name="post-image" type="text" style="width:450px" value="'.$image.'" />
+      <span class="edit-nav"><a href="#" id="browse-image">'.i18n_r('SELECT_FILE').'</a></span>
+    </p>
+    <div class="clear"></div>
+    <script type="text/javascript">'."
+      function fill_image(url) {
+        $('#post-image').val(url);
+      }
+      $(function() {
+        $('#browse-image').click(function(e) {
+          e.preventDefault();
+          window.open('".$SITEURL."plugins/news_manager/browser/filebrowser.php?func=fill_image&type=images".$imagepath."', 'browser', 'width=800,height=500,left=100,top=100,scrollbars=yes');
+        });
+      });
+    </script>
+";
+} else {
+  $imageinputcode = '<input name="post-image" type="hidden" value="'.$image.'" />
+';
+}
+
 ?>
 
 <h3 class="floated">
@@ -36,12 +74,15 @@ global $NMPAGEURL;
   <?php
   if (!$newpost)
     echo '<input name="current-slug" type="hidden" value="',$slug,'" />';
+  if (!empty($author))
+    echo '<input name="author" type="hidden" value="',$author,'" />';
   ?>
   <p>
     <input class="text title required" name="post-title" id="post-title" type="text" value="<?php echo $title; ?>" placeholder="<?php i18n('news_manager/POST_TITLE'); ?>" />
   </p>
   <noscript><style>#metadata_window {display:block !important} </style></noscript>
   <div style="display:none;" id="metadata_window">
+  <?php if ($imageinputpos <= 1) echo $imageinputcode; ?>
     <div class="leftopt">
       <p>
         <label for="post-slug"><?php i18n('news_manager/POST_SLUG'); ?>:</label>
@@ -68,10 +109,13 @@ global $NMPAGEURL;
       </p>
     </div>
     <div class="clear"></div>
+    <?php if ($imageinputpos == 2) echo $imageinputcode; ?>
   </div>
+  <?php if ($imageinputpos == 3) echo $imageinputcode; ?>
   <p>
     <textarea name="post-content"><?php echo $content; ?></textarea>
   </p>
+  <?php if ($imageinputpos == 4) echo $imageinputcode; ?>
   <p>
     <input name="post" type="submit" class="submit" value="<?php i18n('news_manager/SAVE_POST'); ?>" />
     &nbsp;&nbsp;<?php i18n('news_manager/OR'); ?>&nbsp;&nbsp;
@@ -116,5 +160,8 @@ global $NMPAGEURL;
     }
 
     $("#<?php echo (empty($data)) ? 'post-title' : 'metadata_toggle'; ?>").focus();
+
+    $('.submit').clone().appendTo('#sidebar');
+    $('#sidebar .submit').css({'margin-left': '14px'}).click(function() { $('form#edit.largeform input.submit').trigger('click'); });
   });
 </script>

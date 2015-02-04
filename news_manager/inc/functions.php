@@ -26,13 +26,15 @@ function nm_get_posts($all=false) {
 
 /*******************************************************
  * @function nm_get_archives
- * @return array with monthly archives (keys) and posts (values)
+ * @return array with monthly or yearly archives (keys) and post slugs (values)
+ * @param $by month ('m') or year ('y'), default 'm' for monthly archives
  */
-function nm_get_archives() {
+function nm_get_archives($by='m') {
   $archives = array();
   $posts = nm_get_posts();
+  $datefmt = ($by == 'y') ? 'Y' : 'Ym';
   foreach ($posts as $post) {
-    $archive = date('Ym', strtotime($post->date));
+    $archive = date($datefmt, strtotime($post->date));
     $archives[$archive][] = $post->slug;
   }
   return $archives;
@@ -48,8 +50,8 @@ function nm_get_tags() {
   $posts = nm_get_posts();
   foreach ($posts as $post) {
     if (!empty($post->tags)) {
-      foreach (explode(',', $post->tags) as $tag)
-        $tags[$tag][] = $post->slug;
+      foreach (explode(',', nm_lowercase_tags(strip_decode($post->tags))) as $tag)
+        $tags[trim($tag)][] = $post->slug;
     }
   }
   ksort($tags);
@@ -116,13 +118,30 @@ function nm_get_url($query=false) {
     if (function_exists('find_i18n_url')) // I18N?
       $url = find_i18n_url($NMPAGEURL, nm_get_parent(), return_i18n_default_language());
   if ($query) {
+    switch($query) {
+      case 'post':
+        $query = NMPARAMPOST;
+        break;
+      case 'page':
+        $query = NMPARAMPAGE;
+        break;
+      case 'tag':
+        $query = NMPARAMTAG;
+        break;
+      case 'archive':
+        $query = NMPARAMARCHIVE;
+        break;
+    }
     if ($PRETTYURLS == 1 && $NMPRETTYURLS == 'Y') {
-      $str = $query . '/';
+      if ($query == NMPARAMPOST && defined('NMNOPARAMPOST') && NMNOPARAMPOST)
+        $str = '';
+      else
+        $str = $query . '/';
       if (substr($url, -1) != '/')
         $str = '/' . $str;
     } else {
       $str = (strpos($url,'?') === false)? '?' : '&amp;';
-      $str .= $query.'='; 
+      $str .= $query.'=';
     }
   }
   return $url . $str;
@@ -149,6 +168,41 @@ function nm_get_parent() {
     }
   }
   return $NMPARENTURL;
+}
+
+/*******************************************************
+ * @function nm_get_image_url
+ * @param $pic image URL, full or relative to data/uploads/
+ * @return absolute URL of thumbnail/image as defined by $nmoption settings
+ * @since 3.0
+ */
+function nm_get_image_url($pic, $width=null, $height=null, $crop=null, $default=null) {
+  global $SITEURL, $nmoption;
+  $url = '';
+  if (empty($pic)) {
+    if ($default)
+      $pic = $default;
+    else
+      if ($default !== '' && $nmoption['imagedefault'])
+        $pic = $nmoption['imagedefault'];
+  }
+  if (!empty($pic)) {
+    if (!isset($width)) $width = $nmoption['imagewidth'];
+    if (!isset($height)) $height = $nmoption['imageheight'];
+    if (!isset($crop)) $crop = $nmoption['imagecrop'];
+    $pos = strpos($pic, 'data/uploads/');
+    if ($pos !== false || strpos($pic, '/data/thumbs/') !== false || !strpos($pic, '://')) {
+      if ($pos !== false) $pic = substr($pic, $pos+13);
+      $w = $width ? '&w='.$width : '';
+      $h = $height ? '&h='.$height : '';
+      $c = $crop ? '&c=1' : '';
+      $url = $SITEURL.'plugins/news_manager/browser/pic.php?p='.$pic.$w.$h.$c;
+    } else {
+      if ($nmoption['imageexternal'])
+        $url = $pic;
+    }
+  }
+  return $url;
 }
 
 /*******************************************************
@@ -205,33 +259,65 @@ function nm_create_slug($str) {
 /*******************************************************
  * @function nm_create_excerpt
  * @param $content the post content
+ * @param $url if not FALSE, URL to add "read more" link
+ * @param $forcereadmore always add "read more" link, even if not truncated
  * @return a truncated version of the post content
  */
-function nm_create_excerpt($content) {
+function nm_create_excerpt($content, $url=false, $forcereadmore=false) {
   global $NMEXCERPTLENGTH;
   $len = intval($NMEXCERPTLENGTH);
   if ($len == 0) {
     return '';
   } else {
-    $content = preg_replace('/\(%.*?%\)/', '', $content); // remove (% ... %)
-    $content = preg_replace('/\{%.*?%\}/', '', $content); // remove {% ... %}
-    $content = strip_tags($content);
-    $content = preg_replace('/\s+/u', ' ', str_replace('&nbsp;', ' ', $content)); // remove whitespace
-    if (function_exists('mb_strlen')) {
-      if (mb_strlen($content, 'UTF-8') > $len) {
-        $content = trim(mb_substr($content, 0, $len, 'UTF-8'));
-        $content .= i18n_r('news_manager/ELLIPSIS');
-      }
+    $ellipsis = i18n_r('news_manager/ELLIPSIS');
+    $break = nm_get_option('breakwords');
+    if ($url) {
+      $readmorehtml = '<span class="nm_readmore"><a href="'.$url.'">'.i18n_r('news_manager/READ_MORE').'</a></span>';
+      if ($forcereadmore)
+        $content = nm_make_excerpt($content, $len, $ellipsis, $break).' '.$readmorehtml;
+      else
+        $content = nm_make_excerpt($content, $len, $ellipsis.$readmorehtml, $break);
     } else {
-      if (strlen($content) > $len) {
-        $content = trim(substr($content, 0, $len));
-        $content .= i18n_r('news_manager/ELLIPSIS');
-      }
+      $content = nm_make_excerpt($content, $len, $ellipsis, $break);
     }
-    return "<p>$content</p>";
+    return '<p>'.$content.'</p>';
   }
 }
 
+
+/*******************************************************
+ * @function nm_make_excerpt
+ * @param $content source string (html/text)
+ * @param $len maximum excerpt length
+ * @param $ellipsis optional string to be appended at the end (e.g. '...')
+ * @param $break allow cutting off last word
+ * @return excerpt without html tags and usual GS placeholders
+ * @since 3.0
+ */
+function nm_make_excerpt($content, $len=200, $ellipsis='', $break=false) {
+  $content = preg_replace('/\(%.*?%\)/', '', $content); // remove (% ... %)
+  $content = preg_replace('/\{%.*?%\}/', '', $content); // remove {% ... %}
+  $content = strip_tags($content);
+  $content = preg_replace('/\s+/u', ' ', str_replace('&nbsp;', ' ', $content)); // remove whitespace
+  if (function_exists('mb_strlen')) {
+    if (mb_strlen($content, 'UTF-8') > $len) {
+      if ($break)
+        $content = mb_substr($content, 0, $len, 'UTF-8');
+      else
+        $content = mb_substr($content, 0, mb_strrpos(mb_substr($content, 0, $len+1, 'UTF-8'), ' ', 'UTF-8'), 'UTF-8');
+      $content .= $ellipsis;
+    }
+  } else {
+    if (strlen($content) > $len) {
+      if ($break)
+        $content = substr($content, 0, $len);
+      else
+        $content = substr($content, 0, strrpos(substr($content, 0, $len+1), ' '));
+      $content .= $ellipsis;
+    }
+  }
+  return $content;
+}
 
 /*******************************************************
  * @function nm_i18n_merge
@@ -245,7 +331,7 @@ function nm_i18n_merge() {
     global $nm_i18n;
     if ($nm_i18n) {
       $nm_i18n = array_merge($i18n, $nm_i18n); // merge custom array
-    } else {    
+    } else {
       $nm_i18n = $i18n;
     }
     global $i18n;
@@ -257,16 +343,16 @@ function nm_i18n_merge() {
 
 /*******************************************************
  * @function nm_sitemap_include
- * @action add posts to sitemap.xml
+ * @action add posts to sitemap.xml, for GetSimple 3.0 only
  */
 function nm_sitemap_include() {
   global $NMPAGEURL, $page, $xml;
   if (strval($page['url']) == $NMPAGEURL) {
     $posts = nm_get_posts();
     foreach ($posts as $post) {
-      $url = nm_get_url('post') . $post->slug;
-      $file = NMPOSTPATH . "$post->slug.xml";
-      $date = makeIso8601TimeStamp(date("Y-m-d H:i:s", filemtime($file)));
+      $url = nm_get_url('post').$post->slug;
+      $file = NMPOSTPATH.$post->slug.'.xml';
+      $date = makeIso8601TimeStamp(date('Y-m-d H:i:s', filemtime($file)));
       $item = $xml->addChild('url');
       $item->addChild('loc', $url);
       $item->addChild('lastmod', $date);
@@ -310,7 +396,7 @@ function nm_header_include() {
 function nm_display_message($msg, $error=false, $backup=null) {
   if (isset($msg)) {
     if (isset($backup))
-      $msg .= " <a href=\"load.php?id=news_manager&amp;restore=$backup\">" . i18n_r('UNDO') . '</a>';
+      $msg .= ' <a href="load.php?id=news_manager&amp;restore='.$backup.'">'.i18n_r('UNDO').'</a>';
     ?>
     <script type="text/javascript">
       $(function() {
@@ -326,15 +412,79 @@ function nm_display_message($msg, $error=false, $backup=null) {
   }
 }
 
+
 /*******************************************************
- * @function nm_patch_plugin_management
- * @action hack: replace link to Extend plugin page in Plugin Management
- * @since 2.4.0
+ * @function nm_lowercase_tags
+ * @param $str a string containing post tags
+ * @action convert string to lowercase if "lowercasetags" enabled
+ * @since 3.0
  */
-function nm_patch_plugin_management() {
-  global $table;
-  if ($table)
-    $table = str_replace('http://get-simple.info/extend/plugin/news-manager/43/', 'http://get-simple.info/extend/plugin/news-manager-updated/541/', $table);
+function nm_lowercase_tags($str) {
+  if (defined('NMLOWERCASETAGS') && NMLOWERCASETAGS)
+    return lowercase($str);
+  else
+    return $str;
+}
+
+/*******************************************************
+ * @function nm_generate_sitemap
+ * @action trigger Sitemap update only if GetSimple 3.3+
+ * @since 2.5
+ */
+function nm_generate_sitemap() {
+  if (GSVERSION >= '3.3' && (!defined('NMNOSITEMAP') || !NMNOSITEMAP))
+    generate_sitemap();
+}
+
+/*******************************************************
+ * @function nm_update_sitemap_xml
+ * @action add posts to sitemap.xml, GetSimple 3.3+
+ * @param xmlobj
+ * @since 2.5
+ */
+function nm_update_sitemap_xml($xml) {
+  if (!defined('NMNOSITEMAP') || !NMNOSITEMAP) {
+    $posts = nm_get_posts();
+    foreach ($posts as $post) {
+      $url = nm_get_url('post').$post->slug;
+      $file = NMPOSTPATH.$post->slug.'.xml';
+      $date = makeIso8601TimeStamp(date('Y-m-d H:i:s', strtotime($post->date)));
+      $item = $xml->addChild('url');
+      $item->addChild('loc', $url);
+      $item->addChild('lastmod', $date);
+      $item->addChild('changefreq', 'monthly');
+      $item->addChild('priority', '0.5');
+    }
+  }
+  return $xml;
+}
+
+/*******************************************************
+ * @function nm_update_extend_cache
+ * @action hack to replace Extend API cache file
+ * @uses $site_link_back_url (GetSimple's configuration.php)
+ * @since 3.0
+ */
+function nm_update_extend_cache() {
+  if (!is_frontend() && get_filename_id() == 'plugins') {
+    include(GSADMININCPATH.'configuration.php');
+    $url = $site_link_back_url.'api/extend/?id=541';
+    $tempfile = GSCACHEPATH.md5($url).'.txt';
+    $cachefile = GSCACHEPATH.md5($site_link_back_url.'api/extend/?file=news_manager.php').'.txt';
+    get_api_details('custom', $url);
+    if (file_exists($cachefile)) unlink($cachefile);
+    @copy($tempfile, $cachefile);
+  }
+}
+
+# since 3.0
+# for templateFile custom setting (may be renamed later)
+function nm_switch_template_file($tempfile) {
+  global $template_file, $TEMPLATE;
+  $tempfile = nm_get_option('templatefile');
+  # no path traversal and template exists
+  if (strpos(realpath(GSTHEMESPATH.$TEMPLATE."/".$tempfile), realpath(GSTHEMESPATH.$TEMPLATE."/")) === 0 && file_exists(GSTHEMESPATH.$TEMPLATE."/".$tempfile))
+    $template_file = $tempfile;
 }
 
 ?>

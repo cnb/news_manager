@@ -22,7 +22,7 @@ $i18n = array(
 "SUCCESS_RESTORE"     =>  "A bejegyzés sikeresen visszaállítva.",
 
 # other messages
-"UPDATE_HTACCESS"     =>  "<b>Megjegyzés:</b> Valószínűleg módosítanod kell a <a href=\"load.php?id=news_manager&amp;htaccess\">.htaccess</a> fájlt!",
+"UPDATE_HTACCESS"     =>  "<b>Megjegyzés:</b> Valószínűleg módosítanod kell a <a href=\"%s\">.htaccess</a> fájlt!",
 
 # admin button (top-right)
 "SETTINGS"            =>  "Beállítások",
@@ -38,8 +38,9 @@ $i18n = array(
 
 # edit settings
 "NM_SETTINGS"         =>  "News Manager Beállítások",
-"DOCUMENTATION"       =>  "További beállításokkal kapcsolatos információkért látogasd meg a <a href=\"http://www.cyberiada.org/cnb/news-manager/\" target=\"_blank\">dokumentációs oldalt</a>.",
+"DOCUMENTATION"       =>  "További beállításokkal kapcsolatos információkért látogasd meg a <a href=\"%s\" target=\"_blank\">dokumentációs oldalt</a>.",
 "PAGE_URL"            =>  "Hír oldal helye",
+"NO_PAGE_SELECTED"    =>  "No page selected",
 "LANGUAGE"            =>  "Hír oldalon használt nyelv",
 "SHOW_POSTS_AS"       =>  "Bejegyzések megjelenítési módja a Hír oldalon",
 "FULL_TEXT"           =>  "Teljse szöveg",
@@ -49,6 +50,24 @@ $i18n = array(
 "EXCERPT_LENGTH"      =>  "Kivonat hossza (karakter)",
 "POSTS_PER_PAGE"      =>  "Bejegyzések száma a Hír oldalon",
 "RECENT_POSTS"        =>  "Legutóbbi bejegyzések száma (az oldalsávban)",
+"ENABLE_ARCHIVES"     =>  "Enable archives",
+"BY_MONTH"            =>  "By month",
+"BY_YEAR"             =>  "By year",
+"READ_MORE_LINK"      =>  "Add \"read more\" link to excerpts",
+"ALWAYS"              =>  "Always",
+"NOT_SINGLE"          =>  "Yes, except in single post view",
+"GO_BACK_LINK"        =>  "\"Go back\" link in single post view",
+"TITLE_LINK"          =>  "Post Title links to Post",
+"BROWSER_BACK"        =>  "Previously visited page",
+"MAIN_NEWS_PAGE"      =>  "Main News Page",
+"ENABLE_IMAGES"       =>  "Enable post images",
+"IMAGE_LINKS"         =>  "Link images to posts",
+"IMAGE_WIDTH"         =>  "Post image width (pixels)",
+"IMAGE_HEIGHT"        =>  "Post image height (pixels)",
+"FULL"                =>  "full",
+"IMAGE_CROP"          =>  "Crop post images to fit width/height ratio",
+"IMAGE_ALT"           =>  "Insert post title in post image <em>alt</em> attribute",
+"CUSTOM_SETTINGS"     =>  "Custom settings",
 
 # edit post
 "POST_OPTIONS"        =>  "Bejegyzés beállítások",
@@ -57,12 +76,14 @@ $i18n = array(
 "POST_DATE"           =>  "Bejegyzés dátuma (<i>yyyy-mm-dd</i>)",
 "POST_TIME"           =>  "Bejegyzés időpontja (<i>hh:mm</i>)",
 "POST_PRIVATE"        =>  "Privát bejegyzés",
+"POST_IMAGE"          =>  "Kép",
 "LAST_SAVED"          =>  "Utoljára elmentve",
 
 # validation
 "FIELD_IS_REQUIRED"   => "A mező kitöltése kötelező",
 "ENTER_VALID_DATE"    => "Kérlek, adj meg egy érvényes dátumot / Hagyd üresen az aktuális dátumhoz",
 "ENTER_VALID_TIME"    => "Kérlek, adj meg egy érvényes időpontot / Hagyd üresen az aktuális időponthoz",
+"ENTER_VALUE_MIN"     => "Nem lehet kisebb, mint %d",
 
 # htaccess
 "HTACCESS_HELP"       =>  "To enable Fancy URLs for posts, archives, etc., replace the contents of your <code>.htaccess</code> file with the lines below.",
@@ -87,13 +108,21 @@ $i18n = array(
 "NEWER_POSTS"         =>  "Újabb bejegyzések &rarr;",
 "SEARCH"              =>  "Keresés",
 "GO_BACK"             =>  "&lt;&lt; Vissza az előző oldalra",
-"ELLIPSIS"            =>  " [...]",
+"ELLIPSIS"            =>  " [...] ",
+"READ_MORE"           =>  "Tovább",
+"AUTHOR"              =>  "Author:",
+"PREV_TEXT"           =>  "&lt;",
+"PREV_TITLE"          =>  "Előző oldal",
+"NEXT_TEXT"           =>  "&gt;",
+"NEXT_TITLE"          =>  "Következő oldal",
 
 # language localization
 "LOCALE"              =>  "hu_HU.utf8,hu.utf8,hu_HU.UTF-8,hu.UTF-8,hu_HU,hu",
 
-# date settings
-"DATE_FORMAT"         =>  "%Y %b %e"
+# date settings - list of available parameters: http://php.net/strftime
+"DATE_FORMAT"         =>  "%Y %b %e",
+"MONTHLY_FORMAT"      =>  "%B %Y",
+"YEARLY_FORMAT"       =>  "%Y"
 
 );
 

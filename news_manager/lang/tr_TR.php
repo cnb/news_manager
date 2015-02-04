@@ -22,7 +22,7 @@ $i18n = array(
 "SUCCESS_RESTORE"     =>  "Yazı geri yüklendi.", 
 
 # other messages
-"UPDATE_HTACCESS"     =>  "<b>Uyarı:</b> Büyük olasılıkla <a href=\"load.php?id=news_manager&amp;htaccess\">.htaccess</a> dosyasını güncellemeniz gerekiyor.",
+"UPDATE_HTACCESS"     =>  "<b>Uyarı:</b> Büyük olasılıkla <a href=\"%s\">.htaccess</a> dosyasını güncellemeniz gerekiyor.",
 
 # admin button (top-right)
 "SETTINGS"            =>  "Ayarlar",
@@ -38,8 +38,9 @@ $i18n = array(
 
 # edit settings
 "NM_SETTINGS"         =>  "Haber Yönetim Ayarları",
-"DOCUMENTATION"       =>  "Daha fazla bilgi için <a href=\"http://www.cyberiada.org/cnb/news-manager/\" target=\"_blank\">News Manager</a> sayfasını ziyaret edin.",
+"DOCUMENTATION"       =>  "Daha fazla bilgi için <a href=\"%s\" target=\"_blank\">News Manager</a> sayfasını ziyaret edin.",
 "PAGE_URL"            =>  "Haberleri görüntüleme şablonu",
+"NO_PAGE_SELECTED"    =>  "Hiçbir sayfa seçilmedi",
 "LANGUAGE"            =>  "Haber sayfası dili:",
 "SHOW_POSTS_AS"       =>  "Haberler şu şekilde görüntülenecek",
 "FULL_TEXT"           =>  "Tam Yazı",
@@ -49,6 +50,24 @@ $i18n = array(
 "EXCERPT_LENGTH"      =>  "Kısaltma boyutu (karakter)",
 "POSTS_PER_PAGE"      =>  "Haber sayfasındaki girdi sayısı",
 "RECENT_POSTS"        =>  "Yan paneldeki haber başlığı sayısı",
+"ENABLE_ARCHIVES"     =>  "Arşivleri etkinleştir",
+"BY_MONTH"            =>  "Aya göre",
+"BY_YEAR"             =>  "Yıla göre",
+"READ_MORE_LINK"      =>  "Kısa yazılara \"devamını oku\" bağlantısını ekle",
+"ALWAYS"              =>  "Daima",
+"NOT_SINGLE"          =>  "Evet, yazıları görüntülerken hariç",
+"GO_BACK_LINK"        =>  "Yazıları görüntülerken \"Geri dön\" bağlantısı",
+"TITLE_LINK"          =>  "Yazıya başlık bağlantısı",
+"BROWSER_BACK"        =>  "Ziyaret edilen önceki sayfa",
+"MAIN_NEWS_PAGE"      =>  "Ana Haber Sayfası",
+"ENABLE_IMAGES"       =>  "Yazı görsellerini etkinleştir",
+"IMAGE_LINKS"         =>  "Yazıya görsel bağlantıları",
+"IMAGE_WIDTH"         =>  "Yazı görseli genişliği (piksel)",
+"IMAGE_HEIGHT"        =>  "Yazı görseli yüksekliği (piksel)",
+"FULL"                =>  "tam",
+"IMAGE_CROP"          =>  "Yazı görsellerini genişlik/yükselik oranına uyacak şekilde kırp",
+"IMAGE_ALT"           =>  "Yazı görselinin <em>alt</em> etiketine yazı başlığını ekle",
+"CUSTOM_SETTINGS"     =>  "Özel ayarlar",
 
 # edit post
 "POST_OPTIONS"        =>  "Seçenekler",
@@ -57,12 +76,14 @@ $i18n = array(
 "POST_DATE"           =>  "Yayın tarihi (<i>yıl-ay-gün</i>)",
 "POST_TIME"           =>  "Yayın zamanı (<i>saat:dakika</i>)",
 "POST_PRIVATE"        =>  "Gizli haber",
+"POST_IMAGE"          =>  "Resim",
 "LAST_SAVED"          =>  "Son Kaydedilme Tarihi",
 
 # validation
 "FIELD_IS_REQUIRED"   =>  "Bu alanın girilmesi zorunlu",
 "ENTER_VALID_DATE"    =>  "Lütfen geçerli bir tarih girin / Bugün için boş bırakın",
 "ENTER_VALID_TIME"    =>  "Lütfen geçerli bir zaman girin / Şimdiki zaman için boş bırakın", 
+"ENTER_VALUE_MIN"     =>  "Lütfen %d değerine eşit ya da daha büyük bir değer giriniz",
 
 # htaccess
 "HTACCESS_HELP"       =>  "Haberler ve arşivler için düzgün URL kullanmak isterseniz, kök dizindeki <code>.htaccess</code> kodlarını aşağıdakilerle değiştirin.",
@@ -87,13 +108,21 @@ $i18n = array(
 "NEWER_POSTS"         =>  "Yeni Haberler &rarr;",
 "SEARCH"              =>  "Arama",
 "GO_BACK"             =>  "&lt;&lt; Geri Dön",
-"ELLIPSIS"            =>  " [...]",
+"ELLIPSIS"            =>  " [...] ",
+"READ_MORE"           =>  "Devamını Oku",
+"AUTHOR"              =>  "Yazar:",
+"PREV_TEXT"           =>  "&lt;",
+"PREV_TITLE"          =>  "Önceki sayfa",
+"NEXT_TEXT"           =>  "&gt;",
+"NEXT_TITLE"          =>  "Sonraki sayfa",
 
 # language localization
 "LOCALE"              =>  "tr_TR.utf8,tr.utf8,tr_TR.UTF-8,tr.UTF-8,tr_TR,tr",
 
-# date settings
-"DATE_FORMAT"         =>  "%d.%m.%Y"
+# date settings - list of available parameters: http://php.net/strftime
+"DATE_FORMAT"         =>  "%d.%m.%Y",
+"MONTHLY_FORMAT"      =>  "%B %Y",
+"YEARLY_FORMAT"       =>  "%Y"
 
 );
 

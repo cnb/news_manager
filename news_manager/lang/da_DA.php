@@ -22,7 +22,7 @@ $i18n = array(
 "SUCCESS_RESTORE"     =>  "Posten blev genoprettet.",
 
 # other messages
-"UPDATE_HTACCESS"     =>  "<b>Fejl:</b> Opdater venligst <a href=\"load.php?id=news_manager&htaccess\">.htaccess</a>-filen!",
+"UPDATE_HTACCESS"     =>  "<b>Fejl:</b> Opdater venligst <a href=\"%s\">.htaccess</a>-filen!",
 
 # admin button (top-right)
 "SETTINGS"            =>  "Indstillinger",
@@ -38,8 +38,9 @@ $i18n = array(
 
 # edit settings
 "NM_SETTINGS"         =>  "Indstillinger",
-"DOCUMENTATION"       =>  "For flere oplysninger, besøg siden: <a href=\"http://www.cyberiada.org/cnb/news-manager/\" target=\"_blank\">Dokumentation</a>.",
+"DOCUMENTATION"       =>  "For flere oplysninger, besøg siden: <a href=\"%s\" target=\"_blank\">Dokumentation</a>.",
 "PAGE_URL"            =>  "Side med nyhedsposter",
+"NO_PAGE_SELECTED"    =>  "Ingen sider valgt",
 "LANGUAGE"            =>  "Sprog på nyhedsside:",
 "SHOW_POSTS_AS"       =>  "Nyhedsposter vises",
 "FULL_TEXT"           =>  "i fuld længde",
@@ -49,6 +50,24 @@ $i18n = array(
 "EXCERPT_LENGTH"      =>  "Længde på uddrag (antal karakterer)",
 "POSTS_PER_PAGE"      =>  "Antal nyhedsposter på nyhedsside",
 "RECENT_POSTS"        =>  "Antal seneste nyhedsposter (på sidemenu)",
+"ENABLE_ARCHIVES"     =>  "Slå arkivering til",
+"BY_MONTH"            =>  "Efter måned",
+"BY_YEAR"             =>  "Efter år",
+"READ_MORE_LINK"      =>  "Tilføj \" mere\" link til nyhedsuddrag",
+"ALWAYS"              =>  "Altid",
+"NOT_SINGLE"          =>  "Ja, undtagen ved enkelt nyhedsindlæg",
+"GO_BACK_LINK"        =>  "\"Gå tilbage\" link ved visning af enkelt nyhedsindlæg",
+"TITLE_LINK"          =>  "Opret linkoverskrift på nyhedsindlæg",
+"BROWSER_BACK"        =>  "Foregående side",
+"MAIN_NEWS_PAGE"      =>  "Nyhedsoversigt",
+"ENABLE_IMAGES"       =>  "Vis billeder ved nyhedsindlæg",
+"IMAGE_LINKS"         =>  "Billedlink til nyhedsindlæg",
+"IMAGE_WIDTH"         =>  "Bredde (pixels)",
+"IMAGE_HEIGHT"        =>  "Højde (pixels)",
+"FULL"                =>  "fuld",
+"IMAGE_CROP"          =>  "Beskær billeder",
+"IMAGE_ALT"           =>  "Indsæt overskrift på nyhedsbillede <em>alt</em> attribut",
+"CUSTOM_SETTINGS"     =>  "Brugerdefinerede indstillinger",
 
 # edit post
 "POST_OPTIONS"        =>  "Opsætning af nyhedspost",
@@ -57,12 +76,14 @@ $i18n = array(
 "POST_DATE"           =>  "Udgivelsesdato (<i>yyyy-mm-dd</i>)",
 "POST_TIME"           =>  "Udgivelsestidspunkt (<i>hh:mm</i>)",
 "POST_PRIVATE"        =>  "Vent med at udgive nyhedsposten",
+"POST_IMAGE"          =>  "Billede",
 "LAST_SAVED"          =>  "Seneste udgave",
 
 # validation
 "FIELD_IS_REQUIRED"   => "Udfyldning af felt påkrævet",
 "ENTER_VALID_DATE"    => "Indtast en gyldig dato / Udfyld ikke for aktuel dato",
 "ENTER_VALID_TIME"    => "Indtast et gyldigt tidspunkt / Udfyld ikke for aktuelt tidspunkt",
+"ENTER_VALUE_MIN"     => "Angiv en værdi der mindst er %d",
 
 # htaccess
 "HTACCESS_HELP"       =>  "Aktiver forkortet URL for nyhedsposter, -arkiver, etc. ved at erstatte indholdet af <code>.htaccess</code>-filen med linjerne herunder.",
@@ -87,13 +108,21 @@ $i18n = array(
 "NEWER_POSTS"         =>  "Nye nyhedsposter &rarr;",
 "SEARCH"              =>  "Søg",
 "GO_BACK"             =>  "&lt;&lt; Forrige side",
-"ELLIPSIS"            =>  " [...]",
+"ELLIPSIS"            =>  " [...] ",
+"READ_MORE"           =>  "Læs mere",
+"AUTHOR"              =>  "Forfatter:",
+"PREV_TEXT"           =>  "&lt;",
+"PREV_TITLE"          =>  "Forrige side",
+"NEXT_TEXT"           =>  "&gt;",
+"NEXT_TITLE"          =>  "Næste side",
 
 # language localization
 "LOCALE"              =>  "da_DA.utf8,da.utf8,da_DA.UTF-8,da.UTF-8,da_DA,da",
 
-# date settings
-"DATE_FORMAT"         =>  "%b %e, %Y"
+# date settings - list of available parameters: http://php.net/strftime
+"DATE_FORMAT"         =>  "%b %e, %Y",
+"MONTHLY_FORMAT"      =>  "%B %Y",
+"YEARLY_FORMAT"       =>  "%Y"
 
 );
 

@@ -22,7 +22,7 @@ $i18n = array(
 "SUCCESS_RESTORE"     =>  "The post has been restored.",
 
 # other messages
-"UPDATE_HTACCESS"     =>  "<b>Uwaga:</b> Prawdopodobnie musisz zaktualizować plik <a href=\"load.php?id=news_manager&amp;htaccess\">.htaccess</a>!",
+"UPDATE_HTACCESS"     =>  "<b>Uwaga:</b> Prawdopodobnie musisz zaktualizować plik <a href=\"%s\">.htaccess</a>!",
 
 # admin button (top-right)
 "SETTINGS"            =>  "Ustawienia",
@@ -38,8 +38,9 @@ $i18n = array(
 
 # edit settings
 "NM_SETTINGS"         =>  "Ustawienia News Manager'a",
-"DOCUMENTATION"       =>  "Więcej informacji na temat ustawień znajdziesz na stronie z <a href=\"http://www.cyberiada.org/cnb/news-manager/\" target=\"_blank\">dokumentacją</a>.",
+"DOCUMENTATION"       =>  "Więcej informacji na temat ustawień znajdziesz na stronie z <a href=\"%s\" target=\"_blank\">dokumentacją</a>.",
 "PAGE_URL"            =>  "Strona do wyświetlania postów",
+"NO_PAGE_SELECTED"    =>  "No page selected",
 "LANGUAGE"            =>  "Language used on News Page",
 "SHOW_POSTS_AS"       =>  "Posty na stronie z aktualnościami są wyświetlane jako",
 "FULL_TEXT"           =>  "Pełna treść",
@@ -49,6 +50,24 @@ $i18n = array(
 "EXCERPT_LENGTH"      =>  "Długość zajawki (w znakach)",
 "POSTS_PER_PAGE"      =>  "Ilość postów na stronie z aktualnościami",
 "RECENT_POSTS"        =>  "Ilość ostatnich postów (w sidebarze)",
+"ENABLE_ARCHIVES"     =>  "Enable archives",
+"BY_MONTH"            =>  "By month",
+"BY_YEAR"             =>  "By year",
+"READ_MORE_LINK"      =>  "Add \"read more\" link to excerpts",
+"ALWAYS"              =>  "Always",
+"NOT_SINGLE"          =>  "Yes, except in single post view",
+"GO_BACK_LINK"        =>  "\"Go back\" link in single post view",
+"TITLE_LINK"          =>  "Post Title links to Post",
+"BROWSER_BACK"        =>  "Previously visited page",
+"MAIN_NEWS_PAGE"      =>  "Main News Page",
+"ENABLE_IMAGES"       =>  "Enable post images",
+"IMAGE_LINKS"         =>  "Link images to posts",
+"IMAGE_WIDTH"         =>  "Post image width (pixels)",
+"IMAGE_HEIGHT"        =>  "Post image height (pixels)",
+"FULL"                =>  "full",
+"IMAGE_CROP"          =>  "Crop post images to fit width/height ratio",
+"IMAGE_ALT"           =>  "Insert post title in post image <em>alt</em> attribute",
+"CUSTOM_SETTINGS"     =>  "Custom settings",
 
 # edit post
 "POST_OPTIONS"        =>  "Opcje posta",
@@ -57,12 +76,14 @@ $i18n = array(
 "POST_DATE"           =>  "Publish date (<i>yyyy-mm-dd</i>)",
 "POST_TIME"           =>  "Publish time (<i>hh:mm</i>)",
 "POST_PRIVATE"        =>  "Post zaznaczony jako prywatny",
+"POST_IMAGE"          =>  "Image",
 "LAST_SAVED"          =>  "Ostatnio zapisane",
 
 # validation
-"FIELD_IS_REQUIRED"   => "This field is required",
+"FIELD_IS_REQUIRED"   => "To pole jest wymagane",
 "ENTER_VALID_DATE"    => "Please enter a valid date / Leave blank for current date",
 "ENTER_VALID_TIME"    => "Please enter a valid time / Leave blank for current time",
+"ENTER_VALUE_MIN"     => "Proszę o podanie wartości większej bądź równej %d",
 
 # htaccess
 "HTACCESS_HELP"       =>  "Aby włączyć używanie przyjaznych adresów dla postów, archiwum itp. zmień zawartość pliku <code>.htaccess</code> zna poniższe linie.",
@@ -87,13 +108,21 @@ $i18n = array(
 "NEWER_POSTS"         =>  "Nowsze posty &rarr;",
 "SEARCH"              =>  "Szukaj",
 "GO_BACK"             =>  "&lt;&lt; Wróć do poprzedniej strony",
-"ELLIPSIS"            =>  " [...]",
+"ELLIPSIS"            =>  " [...] ",
+"READ_MORE"           =>  "Read more",
+"AUTHOR"              =>  "Author:",
+"PREV_TEXT"           =>  "&lt;",
+"PREV_TITLE"          =>  "Poprzednia strona",
+"NEXT_TEXT"           =>  "&gt;",
+"NEXT_TITLE"          =>  "Następna strona",
 
 # language localization
 "LOCALE"              =>  "pl_PL.utf8,pl.utf8,pl_PL.UTF-8,pl.UTF-8,pl_PL,pl",
 
-# date settings
-"DATE_FORMAT"         =>  "%e %b %Y"
+# date settings - list of available parameters: http://php.net/strftime
+"DATE_FORMAT"         =>  "%e %b %Y",
+"MONTHLY_FORMAT"      =>  "%B %Y",
+"YEARLY_FORMAT"       =>  "%Y"
 
 );
 

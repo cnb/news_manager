@@ -33,6 +33,8 @@ function nm_get_cache_data() {
       $posts[$time]['date'] = strval($data->date);
       $posts[$time]['tags'] = strval($data->tags);
       $posts[$time]['private'] = strval($data->private);
+      $posts[$time]['image'] = strval($data->image);
+      $posts[$time]['author'] = strval($data->author);
     }
   }
   krsort($posts);
@@ -58,11 +60,14 @@ function nm_cache_to_xml($posts) {
     $elem->addCData($post['tags']);
     $elem = $item->addChild('private');
     $elem->addCData($post['private']);
+    $elem = $item->addChild('image');
+    $elem->addCData($post['image']);
+    if (!empty($post['author'])) {
+      $elem = $item->addChild('author');
+      $elem->addCData($post['author']);
+    }
   }
   return @XMLsave($xml, NMPOSTCACHE);
 }
-
-
-
 
 ?>

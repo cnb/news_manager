@@ -22,7 +22,7 @@ $i18n = array(
 "SUCCESS_RESTORE"     =>  "Il post &egrave; stato recuperato.",
 
 # other messages
-"UPDATE_HTACCESS"     =>  "<b>Nota:</b> Probabilmente dovete aggiornare il vostro file <a href=\"load.php?id=news_manager&amp;htaccess\">.htaccess</a>!",
+"UPDATE_HTACCESS"     =>  "<b>Nota:</b> Probabilmente dovete aggiornare il vostro file <a href=\"%s\">.htaccess</a>!",
 
 # admin button (top-right)
 "SETTINGS"            =>  "Impostazioni",
@@ -38,8 +38,9 @@ $i18n = array(
 
 # edit settings
 "NM_SETTINGS"         =>  "Impostazioni News Manager",
-"DOCUMENTATION"       =>  "Per maggiori informazioni su queste impostazioni, visita la <a href=\"http://www.cyberiada.org/cnb/news-manager/\" target=\"_blank\">pagina di documentazione</a>.",
+"DOCUMENTATION"       =>  "Per maggiori informazioni su queste impostazioni, visita la <a href=\"%s\" target=\"_blank\">pagina di documentazione</a>.",
 "PAGE_URL"            =>  "Pagina in cui visualizzare i posts",
+"NO_PAGE_SELECTED"    =>  "Nessuna pagina selezionata",
 "LANGUAGE"            =>  "Lingua utilizzata nella pagina di News",
 "SHOW_POSTS_AS"       =>  "Nella pagina di News i Post sono visualizzati come",
 "FULL_TEXT"           =>  "Testo Completo",
@@ -49,6 +50,24 @@ $i18n = array(
 "EXCERPT_LENGTH"      =>  "Lunghezza dell'estratto (caratteri)",
 "POSTS_PER_PAGE"      =>  "Numero di Post nella pagina di News",
 "RECENT_POSTS"        =>  "Numer di Post recenti (nella sidebar)",
+"ENABLE_ARCHIVES"     =>  "Abilita archivi",
+"BY_MONTH"            =>  "Per mese",
+"BY_YEAR"             =>  "Per anno",
+"READ_MORE_LINK"      =>  "Aggiungi il link \"leggi tutto\" all'estratto",
+"ALWAYS"              =>  "Sempre",
+"NOT_SINGLE"          =>  "Tranne in visualizzazione di post singolo",
+"GO_BACK_LINK"        =>  "Link \"ritorna\" in visualizzazione di post singolo",
+"TITLE_LINK"          =>  "Link al post nel titolo",
+"BROWSER_BACK"        =>  "Pagina precedente",
+"MAIN_NEWS_PAGE"      =>  "Pagina principale news",
+"ENABLE_IMAGES"       =>  "Abilita immagini di presentazione",
+"IMAGE_LINKS"         =>  "Linka immagini ai post",
+"IMAGE_WIDTH"         =>  "Larghezza immagine di presentazione (pixels)",
+"IMAGE_HEIGHT"        =>  "Altezza immagine di presentazione (pixels)",
+"FULL"                =>  "Completo",
+"IMAGE_CROP"          =>  "Rifila immagini di presentazione per adattarle al rapporto larghezza/altezza",
+"IMAGE_ALT"           =>  "Inserisci il titolo del post nell'attributo <em>alt</em> dell'immagine di presentazione",
+"CUSTOM_SETTINGS"     =>  "Impostazioni personalizzate",
 
 # edit post
 "POST_OPTIONS"        =>  "Opzioni per i Post",
@@ -64,6 +83,7 @@ $i18n = array(
 "FIELD_IS_REQUIRED"   => "Questo campo &egrave; richiesto",
 "ENTER_VALID_DATE"    => "Si prega di inserire una data valida / Lasciare vuoto per la data corrente",
 "ENTER_VALID_TIME"    => "Si prega di inserire un'orario valido / Lasciare vuoto per l'orario corrente",
+"ENTER_VALUE_MIN"     => "Inserisci un valore maggiore o uguale a %d",
 
 # htaccess
 "HTACCESS_HELP"       =>  "Per abilitare i Fancy URLs per posts, archivi, ecc., sostituisci il contenuto del tuo file <code>.htaccess</code> file con le seguenti linee.",
@@ -90,12 +110,19 @@ $i18n = array(
 "GO_BACK"             =>  "&lt;&lt; Torna alla pagina precedente",
 "ELLIPSIS"            =>  " [...] ",
 "READ_MORE"            =>  "Leggi tutto",
+"AUTHOR"              =>  "Autore:",
+"PREV_TEXT"           =>  "&lt;",
+"PREV_TITLE"          =>  "Pagina precedente",
+"NEXT_TEXT"           =>  "&gt;",
+"NEXT_TITLE"          =>  "Pagina successiva",
 
 # language localization
 "LOCALE"              =>  "it_IT.utf8,it.utf8,it_IT.UTF-8,it.UTF-8,it_IT,it",
 
-# date settings
-"DATE_FORMAT"         =>  "%e %b, %Y"
+# date settings - list of available parameters: http://php.net/strftime
+"DATE_FORMAT"         =>  "%e %b, %Y",
+"MONTHLY_FORMAT"      =>  "%B %Y",
+"YEARLY_FORMAT"       =>  "%Y"
 
 );
 

@@ -30,6 +30,8 @@ function nm_env_check() {
 function nm_edit_settings() {
   global $PRETTYURLS, $PERMALINK, $NMPAGEURL, $NMPRETTYURLS, $NMLANG, $NMSHOWEXCERPT,
          $NMEXCERPTLENGTH, $NMPOSTSPERPAGE, $NMRECENTPOSTS, $NMSETTING;
+  if (defined('GSCANONICAL') && GSCANONICAL)
+    nm_display_message('<b>Warning:</b> This plugin may not work properly if GSCANONICAL is enabled (gsconfig.php)', true); // not translated
   include(NMTEMPLATEPATH . 'edit_settings.php');
 }
 
@@ -63,7 +65,7 @@ function nm_save_settings() {
   $NMSETTING['imagealt'] = isset($_POST['imagealt']);
   $NMSETTING['imagelink'] = isset($_POST['imagelink']);
   $NMSETTING['enablecustomsettings'] = isset($_POST['enablecustomsettings']);
-  $NMSETTING['customsettings'] = $_POST['customsettings'];
+  $NMSETTING['customsettings'] = get_magic_quotes_gpc()==0 ? $_POST['customsettings'] : stripslashes($_POST['customsettings']);
   # write settings to file
   if (nm_settings_to_xml()) {
     nm_generate_sitemap();

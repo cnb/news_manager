@@ -34,7 +34,7 @@ if ($imageinputpos > 0) {
       $(function() {
         $('#browse-image').click(function(e) {
           e.preventDefault();
-          window.open('".$SITEURL."plugins/news_manager/browser/filebrowser.php?func=fill_image&type=images".$imagepath."', 'browser', 'width=800,height=500,left=100,top=100,scrollbars=yes');
+          window.open('../plugins/news_manager/browser/filebrowser.php?func=fill_image&type=images".$imagepath."', 'browser', 'width=800,height=500,left=100,top=100,scrollbars=yes');
         });
       });
     </script>
@@ -56,8 +56,9 @@ if ($imageinputpos > 0) {
 </h3>
 <div class="edit-nav" >
   <?php
-  if (!empty($NMPAGEURL) && $NMPAGEURL != '' && !$newpost && $private == '') {
+  if (!empty($NMPAGEURL) && $NMPAGEURL != '' && !$newpost) {
     $url = nm_get_url('post') . $slug;
+    $url = nm_patch_i18n_url($url);
     ?>
     <a href="<?php echo $url; ?>" target="_blank">
       <?php i18n('news_manager/VIEW_POST'); ?>
@@ -88,24 +89,30 @@ if ($imageinputpos > 0) {
         <label for="post-slug"><?php i18n('news_manager/POST_SLUG'); ?>:</label>
         <input class="text short" id="post-slug" name="post-slug" type="text" value="<?php echo $slug; ?>" />
       </p>
-      <p>
-        <label for="post-date"><?php i18n('news_manager/POST_DATE'); ?>:</label>
-        <input class="text short" id="post-date" name="post-date" type="text" value="<?php echo $date; ?>" />
-      </p>
-      <p class="inline" id="post-private-wrap">
-        <label for="post-private"><?php i18n('news_manager/POST_PRIVATE'); ?></label>
-        &nbsp;&nbsp;
-        <input type="checkbox" id="post-private" name="post-private" <?php echo $private; ?> />
-      </p>
     </div>
     <div class="rightopt">
       <p>
         <label for="post-tags"><?php i18n('news_manager/POST_TAGS'); ?>:</label>
         <input class="text short" id="post-tags" name="post-tags" type="text" value="<?php echo $tags; ?>" />
       </p>
+    </div>
+    <div class="leftopt">
+      <p>
+        <label for="post-date"><?php i18n('news_manager/POST_DATE'); ?>:</label>
+        <input class="text short" id="post-date" name="post-date" type="text" value="<?php echo $date; ?>" />
+      </p>
+    </div>
+    <div class="rightopt">
       <p>
         <label for="post-time"><?php i18n('news_manager/POST_TIME'); ?>:</label>
         <input class="text short" id="post-time" name="post-time" type="text" value="<?php echo $time; ?>" />
+      </p>
+    </div>
+    <div class="leftopt">
+      <p class="inline" id="post-private-wrap">
+        <label for="post-private"><?php i18n('news_manager/POST_PRIVATE'); ?></label>
+        &nbsp;&nbsp;
+        <input type="checkbox" id="post-private" name="post-private" <?php echo $private; ?> />
       </p>
     </div>
     <div class="clear"></div>
@@ -133,7 +140,7 @@ if ($imageinputpos > 0) {
   </p>
 </form>
 
-<script>
+<script type="text/javascript">
   if ($.validator) {
     jQuery.extend(jQuery.validator.messages, {
       required: "<?php i18n('news_manager/FIELD_IS_REQUIRED'); ?>",

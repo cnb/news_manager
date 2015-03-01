@@ -3,14 +3,14 @@
 /*
 Plugin Name: News Manager
 Description: A blog/news plugin for GetSimple
-Version: 3.0
+Version: 3.1
 Original author: Rogier Koppejan
 Updated by: Carlos Navarro
 
 */
 
 # plugin version
-define('NMVERSION', '3.0');
+define('NMVERSION', '3.1');
 
 # get correct id for plugin
 $thisfile = basename(__FILE__, '.php');
@@ -31,7 +31,9 @@ register_plugin(
 require_once(GSPLUGINPATH.'news_manager/inc/common.php');
 
 # language
-i18n_merge('news_manager') || i18n_merge('news_manager', 'en_US');
+if (basename($_SERVER['PHP_SELF']) != 'index.php') { // back end only
+  i18n_merge('news_manager') || i18n_merge('news_manager', 'en_US');
+}
 
 # hooks
 add_action('pages-sidebar', 'createSideMenu', array($thisfile, i18n_r('news_manager/PLUGIN_NAME')));
@@ -98,11 +100,10 @@ function nm_admin() {
  * @since 2.4
  */
 function nm_frontend_init() {
-  global $NMPAGEURL, $nmpagetype;
+  global $NMPAGEURL, $nmpagetype, $nmsingletag;
   $nmpagetype = array();
   nm_i18n_merge();
-  $url = strval(get_page_slug(false));
-  if ($url == $NMPAGEURL) {
+  if (strval(get_page_slug(false)) == $NMPAGEURL) {
     global $content, $metad;
     $metad_orig = ($metad == '' ? ' ' : $metad);
     $metad = ' ';
@@ -120,20 +121,29 @@ function nm_frontend_init() {
           $nmpagetype[] = 'archive';
 
     } elseif (isset($_GET[NMPARAMTAG])) {
+        $tag = rawurldecode($_GET[NMPARAMTAG]);
+        $result = false;
         nm_reset_options('tag');
         if (nm_get_option('tagpagination')) {
           $index = isset($_GET[NMPARAMPAGE]) ? intval($_GET[NMPARAMPAGE]) : NMFIRSTPAGE;
-          if (nm_show_tag_page(rawurldecode($_GET[NMPARAMTAG]), $index, false))
-            $nmpagetype[] = 'tag';
+          $result = nm_show_tag_page($tag, $index, false);
         } else {
-          if (nm_show_tag(rawurldecode($_GET[NMPARAMTAG]), false))
-            $nmpagetype[] = 'tag';
+          $result = nm_show_tag($tag, false);
+        }
+        if ($result) {
+          $nmpagetype[] = 'tag';
+          $nmsingletag = $tag;
         }
 
     } elseif (isset($_GET[NMPARAMPOST])) {
         nm_reset_options('single');
-        if (nm_show_post($_GET[NMPARAMPOST], false, false, true))
+        if (nm_show_post($_GET[NMPARAMPOST], false, false, true)) {
           $nmpagetype[] = 'single';
+          if (nm_get_option('metakeywordstags'))
+            nm_update_meta_keywords();
+          if (nm_get_option('autometad'))
+            $metad = nm_post_excerpt(150, null, false);
+        }
 
     } elseif (isset($_GET[NMPARAMPAGE]) && intval($_GET[NMPARAMPAGE]) > NMFIRSTPAGE) {
         nm_reset_options('main');
@@ -148,11 +158,11 @@ function nm_frontend_init() {
     }
     $content = nm_ob_get_content(false);
     $content = addslashes(htmlspecialchars($content, ENT_QUOTES, 'UTF-8'));
+    if (nm_get_option('templatefile'))
+      nm_switch_template_file(nm_get_option('templatefile'));
   }
-  if (nm_get_option('templatefile'))
-    nm_switch_template_file(nm_get_option('templatefile'));
-  nm_reset_options();
   nm_update_page_title();
+  nm_reset_options();
 }
 
 /*******************************************************

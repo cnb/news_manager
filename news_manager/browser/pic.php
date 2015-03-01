@@ -3,22 +3,40 @@
 # | Copyright (c) 2013 Martin Vlcek                                    |
 # | License: GPLv3 (http://www.gnu.org/licenses/gpl-3.0.html)          |
 # +--------------------------------------------------------------------+
-# | Modified by Carlos Navarro (for News Manager)                      |
+# | Modified by Carlos Navarro for News Manager (GetSimple CMS plugin) |
 # +--------------------------------------------------------------------+
 
 define('CACHE_SECONDS', 3600*24); // for how long images should be cached
 
+define('PREFIX', 'nmimage.');
+
 $infile = preg_replace('/\.+\//', '', $_GET['p']);
-$maxWidth = @$_GET['w'];
-$maxHeight = @$_GET['h'];
+$maxWidth = strval(@$_GET['w']);
+$maxHeight = strval(@$_GET['h']);
+if ((!empty($maxWidth) && !ctype_digit($maxWidth)) || (!empty($maxHeight) && !ctype_digit($maxHeight))) die('Invalid size!');
 $crop = @$_GET['c'] && $maxWidth && $maxHeight;
+$gsthumb = @$_GET['gt'];
 $datadir = substr(dirname(__FILE__), 0, strrpos(dirname(__FILE__), DIRECTORY_SEPARATOR.'plugins')) . '/data/';
+$imagedir = $datadir . 'uploads/';
 if (strpos($infile,'/data/thumbs/')) {
   $imagedir = $datadir . 'thumbs/';
   $infile = substr($infile,strpos($infile,'/data/thumbs/')+13);
+  if (strpos(basename($infile), PREFIX) === 0) die('Image not allowed!');
 } else {
-  $imagedir = $datadir . 'uploads/';
+  if ($gsthumb) {
+    $pos = strrpos($infile, '/');
+    if ($pos === false) {
+      $thumbfile = 'thumbnail.' . $infile;
+    } else {
+      $thumbfile = substr_replace($infile, '/thumbnail.', $pos, 1);
+    }
+    if (file_exists($datadir . 'thumbs/' . $thumbfile)) {
+      $infile = $thumbfile;
+      $imagedir = $datadir . 'thumbs/';
+    }
+  }
 }
+if (strpos(dirname(realpath($imagedir.$infile)), realpath($imagedir)) !== 0) die('Invalid path!');
 if (!$maxWidth && !$maxHeight) {
   $info = @getimagesize($imagedir.$infile);
   if (!$info) die('File not found or not an image!');
@@ -29,7 +47,7 @@ if (!$maxWidth && !$maxHeight) {
 } else {
   $pos = strrpos($infile,'/');
   if ($pos === false) $pos = -1;
-  $outfile = substr($infile, 0, $pos+1) . 'nmimage.' . ($crop ? 'C' : '') . ($maxWidth ? $maxWidth.'x' : '0x') . ($maxHeight ? $maxHeight.'.' : '0.') . substr($infile, $pos+1);
+  $outfile = substr($infile, 0, $pos+1) . PREFIX . ($crop ? 'C' : '') . ($maxWidth ? $maxWidth.'x' : '0x') . ($maxHeight ? $maxHeight.'.' : '0.') . substr($infile, $pos+1);
   $outfile = substr($outfile, 0, strrpos($outfile,'.')) . '.jpg';
   $thumbdir = $datadir . 'thumbs/';
   if (!file_exists($thumbdir.$outfile) || @filemtime($thumbdir.$outfile) < @filemtime($imagedir.$infile)) {
@@ -49,7 +67,7 @@ if (!$maxWidth && !$maxHeight) {
       case IMAGETYPE_PNG: $src = @imagecreatefrompng($imagedir.$infile); break;
       case IMAGETYPE_GIF: $src = @imagecreatefromgif($imagedir.$infile); break;
     }
-    if (!@$src) die('Can\' read image!');
+    if (!@$src) die('Can\'t read image!');
     if ($crop) {
       $px = $py = 0;
       if ($maxWidth*$height > $width*$maxHeight) {

@@ -152,26 +152,14 @@ function nm_show_search_results() {
 function nm_reset_options($pagetype='') {
   global $nmoption, $NMSETTING, $NMSHOWEXCERPT;
   $nmoption = array();
-  
+
   # pre 3.0 default settings (plus readmore in common.php)
   if (defined('NM2COMPAT') && NM2COMPAT) {
     $nmoption['breakwords'] = true;
     $nmoption['titletag'] = false;
     $nmoption['navoldnew'] = true;
+    $nmoption['markupnavitem'] = 'div';
     if (!defined('NMFIRSTPAGE')) define('NMFIRSTPAGE',0);
-  }
-
-  # full/excerpt, readmore
-  if ($NMSHOWEXCERPT == 'Y' || in_array($pagetype, array('archive','search','tag'))) {
-    $nmoption['excerpt'] = true;
-    if ($NMSETTING['readmore'] == 'R')
-      $nmoption['readmore'] = true;
-    elseif ($NMSETTING['readmore'] == 'F')
-      $nmoption['readmore'] = 'a';
-    else
-      $nmoption['readmore'] = false;
-  } else {
-    $nmoption['excerpt'] = false; // full post
   }
 
   # title link
@@ -211,6 +199,7 @@ function nm_reset_options($pagetype='') {
   $nmoption['imageexternal'] = false;
   $nmoption['imagedefault'] = '';
   $nmoption['imagesizeattr'] = false;
+  $nmoption['imagethumbnail'] = false;
 
   # custom settings
   if ($NMSETTING['enablecustomsettings'] == '1') {
@@ -245,8 +234,17 @@ function nm_reset_options($pagetype='') {
   }
 
   # html tags
-  $nmoption['markuppost'] = isset($nmoption['markuppost']) ? str_replace(array('<','>'),'',$nmoption['markuppost']) : 'div';
-  $nmoption['markuptitle'] = isset($nmoption['markuptitle']) ? str_replace(array('<','>'),'',$nmoption['markuptitle']) : 'h3';
+  foreach (array(
+    'markuppost'        => 'div',
+    'markupposttitle'   => isset($nmoption['markuptitle']) ? nm_clean_markup($nmoption['markuptitle']) : 'h3', // backwards NM 3.0
+    'markuppostdate'    => 'p',
+    'markuppostauthor'  => 'p',
+    'markuppostimage'   => 'div',
+    'markuppostcontent' => 'div',
+    'markupposttags'    => 'p',
+    'markupgoback'      => 'p',
+    ) as $key=>$value)
+      $nmoption[$key] = isset($nmoption[$key]) ? nm_clean_markup($nmoption[$key]) : $value;
 
   # fields
   if (isset($nmoption['showfields'])) {
@@ -278,12 +276,26 @@ function nm_reset_options($pagetype='') {
   # more
   if (!isset($nmoption['more'])) $nmoption['more'] = false;
 
+  # full/excerpt
+  if (!isset($nmoption['excerpt'])) {
+    if ($NMSHOWEXCERPT == 'Y' || in_array($pagetype, array('archive','search','tag')))
+      $nmoption['excerpt'] = true;
+    else
+      $nmoption['excerpt'] = false; // full post
+  }
+
   # readmore
-  if (!isset($nmoption['readmore']))
-    $nmoption['readmore'] = false;
-  else // custom setting - anything beginning with 'a' (all, Always, ...)
-    if (strtolower($nmoption['readmore'][0]) == 'a')
+  if (isset($nmoption['readmore'])) {
+    if (strtolower($nmoption['readmore'][0]) == 'a') // custom setting - anything beginning with 'a' (all, Always, ...)
       $nmoption['readmore'] = 'a';
+  } else {
+    if ($NMSETTING['readmore'] == 'R')
+      $nmoption['readmore'] = true;
+    elseif ($NMSETTING['readmore'] == 'F')
+      $nmoption['readmore'] = 'a';
+    else
+      $nmoption['readmore'] = false;
+  }
 
   # tag pagination
   if (!isset($nmoption['tagpagination'])) {
@@ -293,6 +305,25 @@ function nm_reset_options($pagetype='') {
     if (!in_array($nmoption['tagpagination'], array('d','f')))
       $nmoption['tagpagination'] = false;
   }
+
+  # append custom classes for layout elements
+  foreach (array(
+    'classpost'           => 'nm_post'.($pagetype == 'single' ? ' nm_post_single' : ''),
+    'classposttitle'      => 'nm_post_title',
+    'classposttitlelink'  => '',
+    'classpostdate'       => 'nm_post_date',
+    'classpostauthor'     => 'nm_post_author',
+    'classpostimage'      => 'nm_post_image',
+    'classpostcontent'    => 'nm_post_content',
+    'classreadmore'       => 'nm_readmore',
+    'classreadmorelink'   => '',
+    'classposttags'       => 'nm_post_meta',
+    'classgoback'         => 'nm_post_back',
+    'classgobacklink'     => '',
+    'classnav'            => 'nm_page_nav',
+    ) as $key=>$value)
+    $nmoption[$key] = !isset($nmoption[$key]) ? $value : nm_clean_classes($value.' '.$nmoption[$key]);
+
 }
 
 
@@ -310,7 +341,7 @@ function nm_show_post($slug, $showexcerpt=false, $filter=true, $single=false) {
   $file = NMPOSTPATH.$slug.'.xml';
   if (dirname(realpath($file)) == realpath(NMPOSTPATH)) // no path traversal
     $post = @getXML($file);
-  if (!empty($post) && $post->private != 'Y') {
+  if (!empty($post) && ($post->private != 'Y' || ($single && function_exists('is_logged_in') && is_logged_in()))) {
     $url     = nm_get_url('post') . $slug;
     $title   = stripslashes($post->title);
     $date    = nm_get_date(i18n_r('news_manager/DATE_FORMAT'), strtotime($post->date));
@@ -323,39 +354,42 @@ function nm_show_post($slug, $showexcerpt=false, $filter=true, $single=false) {
 
     if ($filter) ob_start();
 
-    echo '  <',$nmoption['markuppost'],' class="nm_post';
-    if ($single) echo ' nm_post_single';
-    echo '">',PHP_EOL;
+    echo '  <',$nmoption['markuppost'],' class="',$nmoption['classpost'],'">',PHP_EOL;
 
     foreach ($nmoption['fields'] as $field) {
       switch($field) {
 
         case 'title':
-          echo '    <',$nmoption['markuptitle'],' class="nm_post_title">';
-          if ($nmoption['titlelink'])
-            echo '<a href="',$url,'">',$title,'</a>';
-          else
+          echo '    <',$nmoption['markupposttitle'],' class="',$nmoption['classposttitle'],'">';
+          if ($nmoption['titlelink']) {
+            $class = $nmoption['classposttitlelink'] ? ' class="'.$nmoption['classposttitlelink'].'"' : '';
+            echo '<a',$class,' href="',$url,'">',$title,'</a>';
+          } else {
             echo $title;
-          echo '</',$nmoption['markuptitle'],'>',PHP_EOL;
+          }
+          echo '</',$nmoption['markupposttitle'],'>',PHP_EOL;
           break;
 
         case 'date':
-          echo '    <p class="nm_post_date">',i18n_r('news_manager/PUBLISHED'),' ',$date,'</p>',PHP_EOL;
+          echo '    <',$nmoption['markuppostdate'],' class="',$nmoption['classpostdate'],'">',i18n_r('news_manager/PUBLISHED'),' ',$date,'</',$nmoption['markuppostdate'],'>',PHP_EOL;
           break;
 
         case 'content':
-          echo '    <div class="nm_post_content">';
+          echo '    <',$nmoption['markuppostcontent'],' class="',$nmoption['classpostcontent'],'">';
           if ($single) {
             echo $content;
           } else {
             $slice = '';
+            $class = '';
             $readmore = $nmoption['readmore'];
+            if ($readmore)
+              $class = $nmoption['classreadmorelink'] ? ' class="'.$nmoption['classreadmorelink'].'"' : '';
             if ($nmoption['more']) {
               $morepos = strpos($content, '<hr');
               if ($morepos !== false) {
                 $slice = substr($content, 0, $morepos);
                 if ($readmore)
-                  $slice .= '      <p class="nm_readmore"><a href="'.$url.'">'.i18n_r('news_manager/READ_MORE').'</a></p>'.PHP_EOL;
+                  $slice .= '      <p class="'.$nmoption['classreadmore'].'"><a'.$class.' href="'.$url.'">'.i18n_r('news_manager/READ_MORE').'</a></p>'.PHP_EOL;
               }
             }
             if ($slice) {
@@ -371,23 +405,23 @@ function nm_show_post($slug, $showexcerpt=false, $filter=true, $single=false) {
               } else {
                 echo $content;
                 if ($readmore === 'a')
-                  echo '      <p class="nm_readmore"><a href="',$url,'">',i18n_r('news_manager/READ_MORE'),'</a></p>',PHP_EOL;
+                  echo '      <p class="',$nmoption['classreadmore'],'"><a',$class,' href="',$url,'">',i18n_r('news_manager/READ_MORE'),'</a></p>',PHP_EOL;
               }
             }
           }
-          echo '    </div>',PHP_EOL;
+          echo '    </',$nmoption['markuppostcontent'],'>',PHP_EOL;
           break;
 
         case 'tags':
           if ($tags) {
-            echo '    <p class="nm_post_meta"><b>' . i18n_r('news_manager/TAGS') . ':</b> ';
+            echo '    <',$nmoption['markupposttags'],' class="',$nmoption['classposttags'],'"><b>',i18n_r('news_manager/TAGS'),':</b> ';
             $sep = '';
             foreach ($tags as $tag)
               if (substr($tag, 0, 1) != '_') {
-                echo $sep,'<a href="',nm_get_url('tag').rawurlencode($tag),'">',$tag,'</a>';
+                echo $sep,'<a href="',nm_get_url('tag').rawurlencode($tag),'">',htmlspecialchars($tag),'</a>';
                 if ($sep == '') $sep = $nmoption['tagseparator'];
               }
-            echo '</p>',PHP_EOL;
+            echo '</',$nmoption['markupposttags'],'>',PHP_EOL;
           }
           break;
 
@@ -404,17 +438,20 @@ function nm_show_post($slug, $showexcerpt=false, $filter=true, $single=false) {
             $str = '<img src="'.htmlspecialchars($imageurl).'"'.$str.' />';
             if ($nmoption['imagelink'])
               $str = '<a href="'.$url.'">'.$str.'</a>';
-            echo '    <div class="nm_post_image">',$str,'</div>',PHP_EOL;
+            echo '    <',$nmoption['markuppostimage'],' class="',$nmoption['classpostimage'],'">',$str,'</',$nmoption['markuppostimage'],'>',PHP_EOL;
           }
           break;
 
         case 'author':
           if ($nmoption['showauthor']) {
+            global $NMAUTHOR;
             $author = stripslashes($post->author);
+            if (isset($NMAUTHOR[$author]))
+              $author = $NMAUTHOR[$author]; // custom authors array
             if (empty($author) && $nmoption['defaultauthor'])
               $author = $nmoption['defaultauthor'];
             if (!empty($author))
-                echo '    <p class="nm_post_author">'.i18n_r('news_manager/AUTHOR').' <em>'.$author.'</em></p>'.PHP_EOL;
+                echo '    <',$nmoption['markuppostauthor'],' class="',$nmoption['classpostauthor'],'">',i18n_r('news_manager/AUTHOR'),' <em>',$author,'</em></',$nmoption['markuppostauthor'],'>',PHP_EOL;
           }
           break;
       }
@@ -428,9 +465,10 @@ function nm_show_post($slug, $showexcerpt=false, $filter=true, $single=false) {
       # show "go back" link?
       if ($nmoption['gobacklink']) {
         $goback = ($nmoption['gobacklink'] === 'main') ? nm_get_url() : 'javascript:history.back()';
-        echo '    <p class="nm_post_back"><a href="'.$goback.'">';
+        $class = $nmoption['classgobacklink'] ? ' class="'.$nmoption['classgobacklink'].'"' : '';
+        echo '    <',$nmoption['markupgoback'],' class="'.$nmoption['classgoback'].'"><a',$class,' href="'.$goback.'">';
         i18n('news_manager/GO_BACK');
-        echo '</a></p>',PHP_EOL;
+        echo '</a></',$nmoption['markupgoback'],'>',PHP_EOL;
       }
     }
 
@@ -440,9 +478,9 @@ function nm_show_post($slug, $showexcerpt=false, $filter=true, $single=false) {
       get_component($nmoption['componentafterpost']);
       echo PHP_EOL;
     }
-    
+
     if ($filter) echo nm_ob_get_content(true);
-    
+
     return true;
   } else {
     echo '<p>' . i18n_r('news_manager/NOT_EXIST') . '</p>',PHP_EOL;
@@ -470,68 +508,75 @@ function nm_show_navigation($index, $total, $tag=null) {
     else
       $page = $first.'&amp;'.NMPARAMPAGE.'=';
   }
-  echo '<div class="nm_page_nav">';
+
+  $container  = nm_clean_markup(nm_get_option('markupnavcontainer',''));
+  $nav        = nm_clean_markup(nm_get_option('markupnav','div'));
+  $item       = nm_clean_markup(nm_get_option('markupnavitem','span'));
+
+  $clcontainer  = nm_clean_classes(nm_get_option('classnavcontainer',''));
+  $clnav        = nm_clean_classes(nm_get_option('classnav'));
+  $clprev       = nm_clean_classes(nm_get_option('classnavitemprev','previous'));
+  $clnext       = nm_clean_classes(nm_get_option('classnavitemnext','next'));
+  $cldisabled   = nm_clean_classes(nm_get_option('classnavitemdisabled','disabled'));
+  $clcurrent    = nm_clean_classes(nm_get_option('classnavitemcurrent','current'));
+
+  if ($container)
+    echo "<$container",nm_class_attr($clcontainer),">",PHP_EOL;
+  echo "<$nav",nm_class_attr($clnav),">",PHP_EOL;
+
   if (!nm_get_option('navoldnew',false)) {
-  
+
     $prevnext = nm_get_option('navprevnext', '1');
-    if (strtolower($prevnext[0]) == 'a') { // navPrevNext a[lways]
-      $noPrev = '<span class="previous disabled">'.i18n_r('news_manager/PREV_TEXT').'</span>';
-      $noNext = ' <span class="next disabled">'.i18n_r('news_manager/NEXT_TEXT').'</span>';
-    } else {
-      $noPrev = '';
-      $noNext = '';
-    }
-      
+    $showalways = (strtolower($prevnext[0]) == 'a'); // navPrevNext a[lways]
     if ($prevnext && $index > $p1) {
-      echo '<span class="previous"><a href="';
+      echo "<$item",nm_class_attr($clprev),"><a href=\"";
       echo $index > $p1+1 ? $page.($index-1) : $first;
-      echo '" title="',i18n_r('news_manager/PREV_TITLE'),'">',i18n_r('news_manager/PREV_TEXT'),'</a></span>';
+      echo "\" title=\"",i18n_r('news_manager/PREV_TITLE'),'">',i18n_r('news_manager/PREV_TEXT'),"</a></$item>",PHP_EOL;
     } else {
-      echo $noPrev;
+      if ($showalways)
+        echo " <$item",nm_class_attr($clprev.' '.$cldisabled),"><span>",i18n_r('news_manager/PREV_TEXT'),"</span></$item>",PHP_EOL;
     }
-    
+
     if (nm_get_option('navnumber',true)) {
       for ($i = 0; $i < $total; $i++) {
         if ($i+$p1 == $index) {
-          echo ' <span class="current">',$i+1,'</span>';
+          echo " <$item",nm_class_attr($clcurrent),"><span>",$i+1,"</span></$item>",PHP_EOL;
         } else {
-          echo ' <span><a href="';
+          echo " <$item><a href=\"";
           echo $i == 0 ? $first : $page.($i+$p1);
-          echo '">',$i+1,'</a></span>';
+          echo "\">",$i+1,"</a></$item>",PHP_EOL;
         }
       }
     }
-    
+
     if ($prevnext && $index < $total-1+$p1) {
-      echo ' <span class="next"><a href="',$page.($index+1);
-      echo '" title="',i18n_r('news_manager/NEXT_TITLE'),'">',i18n_r('news_manager/NEXT_TEXT'),'</a></span>';
+      echo " <$item",nm_class_attr($clnext),"><a href=\"",$page.($index+1);
+      echo "\" title=\"",i18n_r('news_manager/NEXT_TITLE'),"\">",i18n_r('news_manager/NEXT_TEXT'),"</a></$item>",PHP_EOL;
     } else {
-      echo $noNext;
+      if ($showalways)
+        echo " <$item",nm_class_attr($clnext.' '.$cldisabled),"><span>",i18n_r('news_manager/NEXT_TEXT'),"</span></$item>",PHP_EOL;
     }
-      
+
   } else {
-  
-  # Older/Newer navigation
+
+    # Older/Newer navigation
+    $clold = nm_clean_classes(nm_get_option('classnavitemold','left'));
+    $clnew = nm_clean_classes(nm_get_option('classnavitemnew','right'));
+
     if ($index < $total-1+$p1) {
-    ?>
-    <div class="left">
-      <a href="<?php echo $page.($index+1); ?>">
-        <?php i18n('news_manager/OLDER_POSTS'); ?>
-      </a>
-    </div>
-    <?php
+      echo "<$item",nm_class_attr($clold),">";
+      echo "<a href=\"",$page.($index+1),"\">",i18n_r('news_manager/OLDER_POSTS'),"</a>";
+      echo "</$item>",PHP_EOL;
     }
     if ($index > $p1) {
-    ?>
-    <div class="right">
-      <a href="<?php echo ($index > $p1+1) ? $page.($index-1) : $first ?>">
-        <?php i18n('news_manager/NEWER_POSTS'); ?>
-      </a>
-    </div>
-    <?php
+      echo "<$item",nm_class_attr($clnew),">";
+      echo "<a href=\"",(($index > $p1+1) ? $page.($index-1) : $first),"\">",i18n_r('news_manager/NEWER_POSTS'),"</a>";
+      echo "</$item>",PHP_EOL;
     }
+
   }
-  echo '</div>';
+  echo "</$nav>",PHP_EOL;
+  if ($container) echo "</$container>",PHP_EOL;
 }
 
 
@@ -647,8 +692,8 @@ function nm_is_site() {
 }
 
 function nm_is_single() {
-  global $nmpagetype;
-  return in_array('single', $nmpagetype);
+  global $nmdata;
+  return isset($nmdata['slug']);
 }
 
 function nm_is_main() {
@@ -734,36 +779,78 @@ function nm_set_text($i18nkey=null, $i18nvalue=null) {
 }
 
 
-// patch for <title> tag
+// patch for <title> tag - single post or tag view
 function nm_update_page_title() {
-  if (!nm_is_single() || !nm_get_option('titletag',true) || function_exists('nmt_set_gstitle')) {
-    return;
-  } else {
-    global $title, $nmpagetitle;
-    $nmpagetitle = $title;
-    $title = nm_post_title('',' - '.$title,false);
+  global $title, $nmpagetitle;
+  $nmpagetitle = false;
+  if (nm_is_site() && nm_get_option('titletag',true) && !function_exists('nmt_set_gstitle')) {
+    if (nm_is_single()) {
+      $nmpagetitle = $title;
+      $title = nm_post_title('', ' - '.$title, false);
+    } elseif (nm_is_tag()) {
+      $nmpagetitle = $title;
+      $title = nm_single_tag_title('', ' - '.$title, false);
+    }
   }
 }
 
 // restore original title - <title> tag patch
 function nm_restore_page_title() {
-  if (!nm_is_single() || !nm_get_option('titletag',true) || function_exists('nmt_set_gstitle')) {
-    return;
-  } else {
-    global $title, $nmpagetitle;
+  global $title, $nmpagetitle;
+  if ($nmpagetitle !== false)
     $title = $nmpagetitle;
-  }
 }
 
 // get output buffer, optionally apply content filter
 function nm_ob_get_content($filter=true) {
-	$output = ob_get_contents();
-	ob_end_clean();
-	if ($filter) {
-		return exec_filter('content', $output);
-	} else {
-		return $output;
-	}
+  $output = ob_get_contents();
+  ob_end_clean();
+  if ($filter) {
+    return exec_filter('content', $output);
+  } else {
+    return $output;
+  }
+}
+
+
+/***** since 3.1 ****/
+
+// display or return current tag, if in single tag view
+function nm_single_tag_title($before='', $after='', $echo=true) {
+  global $nmsingletag;
+  if ($nmsingletag) {
+    $str = $before.htmlspecialchars($nmsingletag).$after;
+    if ($echo) echo $str;
+    return $str;
+  } else {
+    return false;
+  }
+}
+
+// set post tags as meta keywords
+function nm_update_meta_keywords() {
+  global $metak, $nmdata;
+  $tags = array();
+  foreach ($nmdata['tags'] as $tag)
+    if (substr($tag, 0, 1) != '_') $tags[] = $tag;
+  $metak = htmlspecialchars(implode($tags, ', '), ENT_COMPAT, 'UTF-8');
+}
+
+function nm_class_attr($str='') {
+  return $str ? ' class="'.trim($str).'"' : '';
+}
+
+// remove some special chars from custom markup
+function nm_clean_markup($str) {
+  return str_replace(array('<','>','"','\'',' '), '', $str);
+}
+
+// remove invalid chars in custom CSS class selectors
+function nm_clean_classes($str) {
+  return trim(str_replace(array(
+    '~','!','@','$','%','^','&','*','(',')','+','=',',','.','/',
+    '\'',';',':','"','?','>','<','[',']','\\','{','}','|','`','#'
+    ), '', $str));
 }
 
 ?>

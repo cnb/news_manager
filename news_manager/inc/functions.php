@@ -88,7 +88,7 @@ function nm_get_date($format, $timestamp) {
   $locale = setlocale(LC_TIME, 0);
   // setlocale(LC_TIME, $NMLANG);
   if (array_key_exists('news_manager/LOCALE', $i18n)) {
-    setlocale(LC_TIME, preg_split('/s*,s*/', $i18n['news_manager/LOCALE']));
+    setlocale(LC_TIME, preg_split('/\s*,\s*/', trim($i18n['news_manager/LOCALE']), -1, PREG_SPLIT_NO_EMPTY));
   } else {
     # no locale in language file
     $lg = substr($NMLANG,0,2);
@@ -114,9 +114,6 @@ function nm_get_url($query=false) {
   global $PRETTYURLS, $NMPAGEURL, $NMPRETTYURLS;
   $str = '';
   $url = find_url($NMPAGEURL, nm_get_parent());
-  if (basename($_SERVER['PHP_SELF']) != 'index.php') // back end only
-    if (function_exists('find_i18n_url')) // I18N?
-      $url = find_i18n_url($NMPAGEURL, nm_get_parent(), return_i18n_default_language());
   if ($query) {
     switch($query) {
       case 'post':
@@ -190,13 +187,20 @@ function nm_get_image_url($pic, $width=null, $height=null, $crop=null, $default=
     if (!isset($width)) $width = $nmoption['imagewidth'];
     if (!isset($height)) $height = $nmoption['imageheight'];
     if (!isset($crop)) $crop = $nmoption['imagecrop'];
-    $pos = strpos($pic, 'data/uploads/');
-    if ($pos !== false || strpos($pic, '/data/thumbs/') !== false || !strpos($pic, '://')) {
-      if ($pos !== false) $pic = substr($pic, $pos+13);
+    $pos = strpos($pic, '/data/uploads/');
+    $uploads = ($pos !== false || !strpos($pic, '://'));
+    if ($uploads || strpos($pic, '/data/thumbs/') !== false) {
+      if ($pos !== false)
+        $pic = substr($pic, $pos+14);
       $w = $width ? '&w='.$width : '';
       $h = $height ? '&h='.$height : '';
-      $c = $crop ? '&c=1' : '';
-      $url = $SITEURL.'plugins/news_manager/browser/pic.php?p='.$pic.$w.$h.$c;
+      if ($w == '' && $h == '' && $uploads) {
+        $url = $SITEURL.'data/uploads/'.$pic;
+      } else {
+        $c = $crop ? '&c=1' : '';
+        $gt = $nmoption['imagethumbnail'] ? '&gt=1' : '';
+        $url = $SITEURL.'plugins/news_manager/browser/pic.php?p='.$pic.$w.$h.$c.$gt;
+      }
     } else {
       if ($nmoption['imageexternal'])
         $url = $pic;
@@ -271,8 +275,10 @@ function nm_create_excerpt($content, $url=false, $forcereadmore=false) {
   } else {
     $ellipsis = i18n_r('news_manager/ELLIPSIS');
     $break = nm_get_option('breakwords');
+    $class = nm_get_option('classreadmorelink');
+    $class = $class ? ' class="'.$class.'"' : '';
     if ($url) {
-      $readmorehtml = '<span class="nm_readmore"><a href="'.$url.'">'.i18n_r('news_manager/READ_MORE').'</a></span>';
+      $readmorehtml = '<span class="'.nm_get_option('classreadmore','nm_readmore').'"><a'.$class.' href="'.$url.'">'.i18n_r('news_manager/READ_MORE').'</a></span>';
       if ($forcereadmore)
         $content = nm_make_excerpt($content, $len, $ellipsis, $break).' '.$readmorehtml;
       else
@@ -438,13 +444,15 @@ function nm_generate_sitemap() {
 
 /*******************************************************
  * @function nm_update_sitemap_xml
- * @action add posts to sitemap.xml, GetSimple 3.3+
+ * @action add posts (and tag pages) to sitemap.xml, GetSimple 3.3+
  * @param xmlobj
  * @since 2.5
  */
 function nm_update_sitemap_xml($xml) {
   if (!defined('NMNOSITEMAP') || !NMNOSITEMAP) {
     $posts = nm_get_posts();
+    $tags = array();
+    $excludetags = (defined('NMSITEMAPEXCLUDETAGS') && (NMSITEMAPEXCLUDETAGS === true || NMSITEMAPEXCLUDETAGS === 1));
     foreach ($posts as $post) {
       $url = nm_get_url('post').$post->slug;
       $file = NMPOSTPATH.$post->slug.'.xml';
@@ -454,6 +462,21 @@ function nm_update_sitemap_xml($xml) {
       $item->addChild('lastmod', $date);
       $item->addChild('changefreq', 'monthly');
       $item->addChild('priority', '0.5');
+      if (!$excludetags && !empty($post->tags)) {
+        foreach (explode(',', nm_lowercase_tags(strip_decode($post->tags))) as $tag) {
+          if (substr($tag, 0, 1) != '_') {
+            if (!in_array($tag, $tags)) {
+              $url = nm_get_url('tag').rawurlencode($tag);
+              $item = $xml->addChild('url');
+              $item->addChild('loc', $url);
+              $item->addChild('lastmod', $date);
+              $item->addChild('changefreq', 'monthly');
+              $item->addChild('priority', '0.5');
+              $tags[] = $tag;
+            }
+          }
+        }
+      }
     }
   }
   return $xml;
@@ -478,13 +501,18 @@ function nm_update_extend_cache() {
 }
 
 # since 3.0
-# for templateFile custom setting (may be renamed later)
+# for templateFile custom setting (function may be renamed later)
 function nm_switch_template_file($tempfile) {
   global $template_file, $TEMPLATE;
-  $tempfile = nm_get_option('templatefile');
   # no path traversal and template exists
   if (strpos(realpath(GSTHEMESPATH.$TEMPLATE."/".$tempfile), realpath(GSTHEMESPATH.$TEMPLATE."/")) === 0 && file_exists(GSTHEMESPATH.$TEMPLATE."/".$tempfile))
     $template_file = $tempfile;
+}
+
+# since 3.1
+# fix URLs with special permalink placeholders for the I18N plugin - backend only
+function nm_patch_i18n_url($url) {
+  return str_replace(array('%language%/','%nondefaultlanguage%/','%parents%/'), array('','',''), $url);
 }
 
 ?>

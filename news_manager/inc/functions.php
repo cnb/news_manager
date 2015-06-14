@@ -11,6 +11,11 @@
  * @return array with posts
  */
 function nm_get_posts($all=false) {
+  if (!$all) {
+    static $posts = null; // lazy initialization
+    if ($posts !== null)
+      return $posts; // if already loaded, return
+  }
   if (!file_exists(NMPOSTCACHE))
     nm_update_cache();
   $data = @getXML(NMPOSTCACHE);
@@ -170,11 +175,13 @@ function nm_get_parent() {
 /*******************************************************
  * @function nm_get_image_url
  * @param $pic image URL, full or relative to data/uploads/
- * @return absolute URL of thumbnail/image as defined by $nmoption settings
+ * @return absolute URL of thumbnail/image as defined by $nmoption settings / registers allowed sizes since 3.2
  * @since 3.0
  */
 function nm_get_image_url($pic, $width=null, $height=null, $crop=null, $default=null) {
-  global $SITEURL, $nmoption;
+  global $SITEURL, $nmoption, $nmimagesizes;
+  if (!$nmimagesizes)
+    $nmimagesizes = array();
   $url = '';
   if (empty($pic)) {
     if ($default)
@@ -200,6 +207,15 @@ function nm_get_image_url($pic, $width=null, $height=null, $crop=null, $default=
         $c = $crop ? '&c=1' : '';
         $gt = $nmoption['imagethumbnail'] ? '&gt=1' : '';
         $url = $SITEURL.'plugins/news_manager/browser/pic.php?p='.$pic.$w.$h.$c.$gt;
+        # register image size for pic.php - since 3.2
+        $size = array('w' => $width, 'h' => $height, 'c' => $crop);
+        if (!in_array($size, $nmimagesizes)) {
+          $nmimagesizes[] = $size;
+          $file = NMDATAPATH.'images.'.($crop && $width && $height ? 'C' : '').($width ? $width.'x' : '0x').($height ? $height : '0').'.txt';
+          if (!file_exists($file)) {
+            file_put_contents($file, '');
+          }
+        }
       }
     } else {
       if ($nmoption['imageexternal'])
@@ -303,6 +319,38 @@ function nm_create_excerpt($content, $url=false, $forcereadmore=false) {
 function nm_make_excerpt($content, $len=200, $ellipsis='', $break=false) {
   $content = preg_replace('/\(%.*?%\)/', '', $content); // remove (% ... %)
   $content = preg_replace('/\{%.*?%\}/', '', $content); // remove {% ... %}
+  
+  # Remove HTML tags, including invisible text such as style and
+  # script code, and embedded objects.  Add line breaks around
+  # block-level tags to prevent word joining after tag removal.
+  # http://nadeausoftware.com/articles/2007/09/php_tip_how_strip_html_tags_web_page
+  $content = preg_replace(
+    array(
+      // Remove invisible content
+      '@<head[^>]*?>.*?</head>@siu',
+      '@<style[^>]*?>.*?</style>@siu',
+      '@<script[^>]*?.*?</script>@siu',
+      '@<object[^>]*?.*?</object>@siu',
+      '@<embed[^>]*?.*?</embed>@siu',
+      '@<applet[^>]*?.*?</applet>@siu',
+      '@<noframes[^>]*?.*?</noframes>@siu',
+      '@<noscript[^>]*?.*?</noscript>@siu',
+      '@<noembed[^>]*?.*?</noembed>@siu',
+      // Add line breaks before and after blocks
+      '@</?((address)|(blockquote)|(center)|(del))@iu',
+      '@</?((div)|(h[1-9])|(ins)|(isindex)|(p)|(pre))@iu',
+      '@</?((dir)|(dl)|(dt)|(dd)|(li)|(menu)|(ol)|(ul))@iu',
+      '@</?((table)|(th)|(td)|(caption))@iu',
+      '@</?((form)|(button)|(fieldset)|(legend)|(input))@iu',
+      '@</?((label)|(select)|(optgroup)|(option)|(textarea))@iu',
+      '@</?((frameset)|(frame)|(iframe))@iu',
+    ),
+    array(
+      ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+      "\n\$0", "\n\$0", "\n\$0", "\n\$0", "\n\$0", "\n\$0",
+      "\n\$0", "\n\$0",
+    ), $content);
+
   $content = strip_tags($content);
   $content = preg_replace('/\s+/u', ' ', str_replace('&nbsp;', ' ', $content)); // remove whitespace
   if (function_exists('mb_strlen')) {
@@ -513,6 +561,24 @@ function nm_switch_template_file($tempfile) {
 # fix URLs with special permalink placeholders for the I18N plugin - backend only
 function nm_patch_i18n_url($url) {
   return str_replace(array('%language%/','%nondefaultlanguage%/','%parents%/'), array('','',''), $url);
+}
+
+## since 3.2
+
+function nm_get_fallback_lang() {
+  global $LANG;
+  $files = glob(NMLANGPATH.substr($LANG,0,2).'*.php');
+  $fallback = reset($files);
+  return $fallback ? basename($fallback, '.php') : 'en_US';
+}
+
+function nm_post_files_differ(&$posts) {
+  $slugs = $files = array();
+  foreach ($posts as $post)
+    $slugs[] = (string)$post->slug;
+  foreach (glob(NMPOSTPATH.'*.xml') as $file)
+    $files[] = basename($file, '.xml');
+  return (count($files) != count($slugs) || count(array_diff($slugs, $files)) > 0);
 }
 
 ?>

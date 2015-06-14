@@ -121,17 +121,22 @@ function nm_show_tag_page($tag, $index=NMFIRSTPAGE, $filter=true) {
  * @action search posts by keyword(s)
  */
 function nm_show_search_results() {
-  $keywords = @explode(' ', $_POST['keywords']);
-  $posts = nm_get_posts();
-  foreach ($keywords as $keyword) {
-    $match = array();
-    foreach ($posts as $post) {
-      $data = getXML(NMPOSTPATH.$post->slug.'.xml');
-      $content = $data->title . $data->content;
-      if (stripos($content, $keyword) !== false)
-        $match[] = $post;
+  $keywords = preg_split('/\s+/u',trim($_POST['keywords']),null,PREG_SPLIT_NO_EMPTY);
+  if (empty($keywords)) {
+    $posts = array();
+  } else {
+    $posts = nm_get_posts();
+    $mb = function_exists('mb_stripos');
+    foreach ($keywords as $keyword) {
+      $match = array();
+      foreach ($posts as $post) {
+        $data = getXML(NMPOSTPATH.$post->slug.'.xml');
+        $content = $data->title . $data->content;
+        if (($mb && mb_stripos($content, $keyword, 0, 'UTF-8') !== false) || (!$mb && stripos($content, $keyword) !== false))
+          $match[] = $post;
+      }
+      $posts = $match;
     }
-    $posts = $match;
   }
   if (!empty($posts)) {
     $showexcerpt = nm_get_option('excerpt');
@@ -239,6 +244,7 @@ function nm_reset_options($pagetype='') {
     'markupposttitle'   => isset($nmoption['markuptitle']) ? nm_clean_markup($nmoption['markuptitle']) : 'h3', // backwards NM 3.0
     'markuppostdate'    => 'p',
     'markuppostauthor'  => 'p',
+    'markuppostauthorname' => 'em',
     'markuppostimage'   => 'div',
     'markuppostcontent' => 'div',
     'markupposttags'    => 'p',
@@ -444,14 +450,11 @@ function nm_show_post($slug, $showexcerpt=false, $filter=true, $single=false) {
 
         case 'author':
           if ($nmoption['showauthor']) {
-            global $NMAUTHOR;
-            $author = stripslashes($post->author);
-            if (isset($NMAUTHOR[$author]))
-              $author = $NMAUTHOR[$author]; // custom authors array
+            $author = nm_get_author_name_html(stripslashes($post->author));
             if (empty($author) && $nmoption['defaultauthor'])
               $author = $nmoption['defaultauthor'];
             if (!empty($author))
-                echo '    <',$nmoption['markuppostauthor'],' class="',$nmoption['classpostauthor'],'">',i18n_r('news_manager/AUTHOR'),' <em>',$author,'</em></',$nmoption['markuppostauthor'],'>',PHP_EOL;
+                echo '    <',$nmoption['markuppostauthor'],' class="',$nmoption['classpostauthor'],'">',i18n_r('news_manager/AUTHOR'),' <',$nmoption['markuppostauthorname'],'>',$author,'</',$nmoption['markuppostauthorname'],'></',$nmoption['markuppostauthor'],'>',PHP_EOL;
           }
           break;
       }
@@ -563,15 +566,22 @@ function nm_show_navigation($index, $total, $tag=null) {
     $clold = nm_clean_classes(nm_get_option('classnavitemold','left'));
     $clnew = nm_clean_classes(nm_get_option('classnavitemnew','right'));
 
+    $showalways = (strtolower(substr(nm_get_option('navoldnew'),0,1)) == 'a'); // navOldNew a[lways]
     if ($index < $total-1+$p1) {
       echo "<$item",nm_class_attr($clold),">";
       echo "<a href=\"",$page.($index+1),"\">",i18n_r('news_manager/OLDER_POSTS'),"</a>";
       echo "</$item>",PHP_EOL;
+    } else {
+      if ($showalways)
+        echo " <$item",nm_class_attr($clold.' '.$cldisabled),"><span>",i18n_r('news_manager/OLDER_POSTS'),"</span></$item>",PHP_EOL;
     }
     if ($index > $p1) {
       echo "<$item",nm_class_attr($clnew),">";
       echo "<a href=\"",(($index > $p1+1) ? $page.($index-1) : $first),"\">",i18n_r('news_manager/NEWER_POSTS'),"</a>";
       echo "</$item>",PHP_EOL;
+    } else {
+      if ($showalways)
+        echo " <$item",nm_class_attr($clnew.' '.$cldisabled),"><span>",i18n_r('news_manager/NEWER_POSTS'),"</span></$item>",PHP_EOL;
     }
 
   }
@@ -851,6 +861,25 @@ function nm_clean_classes($str) {
     '~','!','@','$','%','^','&','*','(',')','+','=',',','.','/',
     '\'',';',':','"','?','>','<','[',']','\\','{','}','|','`','#'
     ), '', $str));
+}
+
+/***** since 3.2 ****/
+
+// returns display name for specified user, ready to be echoed
+// (loads user file if name not in global array $NMAUTHOR)
+function nm_get_author_name_html($author='') {
+  global $NMAUTHOR;
+  if (!$NMAUTHOR) $NMAUTHOR = array();
+  if (isset($NMAUTHOR[$author])) {
+    $name = $NMAUTHOR[$author];
+  } elseif (file_exists(GSUSERSPATH.$author.'.xml')) {
+      $userxml = getXML(GSUSERSPATH.$author.'.xml');
+      $name = !empty($userxml->NAME) ? htmlspecialchars($userxml->NAME) : $author;
+      $NMAUTHOR[$author] = $name;
+  } else {
+    $name = $author;
+  }
+  return $name;
 }
 
 ?>

@@ -3,14 +3,14 @@
 /*
 Plugin Name: News Manager
 Description: A blog/news plugin for GetSimple
-Version: 3.1
+Version: 3.2
 Original author: Rogier Koppejan
 Updated by: Carlos Navarro
 
 */
 
 # plugin version
-define('NMVERSION', '3.1');
+define('NMVERSION', '3.2');
 
 # get correct id for plugin
 $thisfile = basename(__FILE__, '.php');
@@ -32,7 +32,7 @@ require_once(GSPLUGINPATH.'news_manager/inc/common.php');
 
 # language
 if (basename($_SERVER['PHP_SELF']) != 'index.php') { // back end only
-  i18n_merge('news_manager') || i18n_merge('news_manager', 'en_US');
+  i18n_merge('news_manager') || i18n_merge('news_manager', nm_get_fallback_lang());
 }
 
 # hooks

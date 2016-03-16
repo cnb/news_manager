@@ -3,14 +3,16 @@
 /*
 Plugin Name: News Manager
 Description: A blog/news plugin for GetSimple
-Version: 3.2.3
+Version: 3.3
 Original author: Rogier Koppejan
 Updated by: Carlos Navarro
 
 */
 
 # plugin version
-define('NMVERSION', '3.2.3');
+define('NMVERSION', '3.3');
+
+$nmtab = (defined('NMTAB') && NMTAB) ? 'news_manager' : 'pages';
 
 # get correct id for plugin
 $thisfile = basename(__FILE__, '.php');
@@ -23,7 +25,7 @@ register_plugin(
   'Rogier Koppejan, Carlos Navarro',
   'http://newsmanager.c1b.org/',
   'A blog/news plugin for GetSimple',
-  'pages',
+  $nmtab,
   'nm_admin'
 );
 
@@ -32,12 +34,19 @@ require_once(GSPLUGINPATH.'news_manager/inc/common.php');
 
 # language
 if (basename($_SERVER['PHP_SELF']) != 'index.php') { // back end only
-  i18n_merge('news_manager') || i18n_merge('news_manager', nm_get_fallback_lang());
+  nm_i18n_merge(true);
 }
 
 # hooks
-add_action('pages-sidebar', 'createSideMenu', array($thisfile, i18n_r('news_manager/PLUGIN_NAME')));
+if ($nmtab == 'news_manager') {
+  $nmtablabel = isset($i18n['news_manager/NEWS_TAB']) ? i18n_r('news_manager/NEWS_TAB') : i18n_r('news_manager/PLUGIN_NAME');
+  add_action('nav-tab', 'createNavTab', array('news_manager', $thisfile, $nmtablabel) );
+  add_action('footer', 'nm_update_mu_landing_dropdown');
+} else {
+  add_action('pages-sidebar', 'createSideMenu', array($thisfile, i18n_r('news_manager/PLUGIN_NAME')));
+}
 add_action('header', 'nm_header_include');
+add_action('header', 'nm_add_mu_permissions');
 add_action('index-pretemplate', 'nm_frontend_init');
 add_action('theme-header','nm_restore_page_title');
 //add_filter('content', 'nm_site'); // deprecated
@@ -59,6 +68,10 @@ if (function_exists('register_script')) {
       register_script('jquery-validate',$SITEURL.'plugins/news_manager/js/jquery.validate.min.js', '1.10.0', false);
     }
     queue_script('jquery-validate', GSBACK);
+    if (!defined('NMWARNUNSAVED') || NMWARNUNSAVED) {
+      register_script('jquery-areyousure', $SITEURL.'plugins/news_manager/js/jquery.are-you-sure.js', '1.9.0', false);
+      queue_script('jquery-areyousure', GSBACK);
+    }
   }
 }
 
@@ -110,35 +123,46 @@ function nm_frontend_init() {
     $metad = ' ';
     $nmpagetype[] = 'site';
     ob_start();
-    echo PHP_EOL;
+    echo "\n";
     if (isset($_POST['search'])) {
         nm_reset_options('search');
         nm_show_search_results();
         $nmpagetype[] = 'search';
-
-    } elseif (isset($_GET[NMPARAMARCHIVE])) {
-        nm_reset_options('archive');
-        if (nm_show_archive($_GET[NMPARAMARCHIVE], false))
-          $nmpagetype[] = 'archive';
+        $result = true;
 
     } elseif (isset($_GET[NMPARAMTAG])) {
         $tag = rawurldecode($_GET[NMPARAMTAG]);
         $result = false;
-        nm_reset_options('tag');
-        if (nm_get_option('tagpagination')) {
-          $index = isset($_GET[NMPARAMPAGE]) ? intval($_GET[NMPARAMPAGE]) : NMFIRSTPAGE;
-          $result = nm_show_tag_page($tag, $index, false);
+        if (isset($_GET[NMPARAMARCHIVE])) {
+          nm_reset_options('archive');
+          if (nm_get_option('tagarchives')) {
+            $result = nm_show_tag_archive($tag, $_GET[NMPARAMARCHIVE], false);
+            if ($result) $nmpagetype[] = 'archive';
+          }
         } else {
-          $result = nm_show_tag($tag, false);
+          nm_reset_options('tag');
+          if (nm_get_option('tagpagination')) {
+            $index = isset($_GET[NMPARAMPAGE]) ? intval($_GET[NMPARAMPAGE]) : NMFIRSTPAGE;
+            $result = nm_show_tag_page($tag, $index, false);
+          } else {
+            $result = nm_show_tag($tag, false);
+          }
         }
         if ($result) {
           $nmpagetype[] = 'tag';
           $nmsingletag = $tag;
         }
 
+    } elseif (isset($_GET[NMPARAMARCHIVE])) {
+        nm_reset_options('archive');
+        $result = nm_show_archive($_GET[NMPARAMARCHIVE], false);
+        if ($result)
+          $nmpagetype[] = 'archive';
+
     } elseif (isset($_GET[NMPARAMPOST])) {
         nm_reset_options('single');
-        if (nm_show_post($_GET[NMPARAMPOST], false, false, true)) {
+        $result = nm_show_post($_GET[NMPARAMPOST], false, false, true);
+        if ($result) {
           $nmpagetype[] = 'single';
           if (nm_get_option('metakeywordstags'))
             nm_update_meta_keywords();
@@ -146,19 +170,23 @@ function nm_frontend_init() {
             $metad = nm_post_excerpt(150, null, false);
         }
 
-    } elseif (isset($_GET[NMPARAMPAGE]) && intval($_GET[NMPARAMPAGE]) > NMFIRSTPAGE) {
+    } elseif (isset($_GET[NMPARAMPAGE]) && intval($_GET[NMPARAMPAGE]) != NMFIRSTPAGE) {
         nm_reset_options('main');
-        nm_show_page($_GET[NMPARAMPAGE], false);
-        $nmpagetype[] = 'main';
+        $result = nm_show_page($_GET[NMPARAMPAGE], false);
+        if ($result)
+          $nmpagetype[] = 'main';
 
     } else {
         $metad = $metad_orig;
         nm_reset_options('main');
         nm_show_page(NMFIRSTPAGE, false);
         array_push($nmpagetype, 'main', 'home');
+        $result = true;
     }
     $content = nm_ob_get_content(false);
     $content = addslashes(htmlspecialchars($content, ENT_QUOTES, 'UTF-8'));
+    if (!$result) 
+      header($_SERVER["SERVER_PROTOCOL"]." 404 Not Found");
     if (nm_get_option('templatefile'))
       nm_switch_template_file(nm_get_option('templatefile'));
   }

@@ -142,6 +142,28 @@ if ($imageinputpos > 0) {
 </form>
 
 <script type="text/javascript">
+
+<?php if (!defined('NMWARNUNSAVED') || NMWARNUNSAVED) { ?>
+  $('form').areYouSure( {'silent':true} );
+  var warnme = false;
+  var notsubmit = true;
+  window.onbeforeunload = function () {
+    if (typeof(CKEDITOR) != 'undefined') {
+      if (CKEDITOR.instances["post-content"].checkDirty()) {
+        warnme = true;
+      }
+    }
+    if (notsubmit) {
+      if (warnme || $('#edit').hasClass('dirty')) {
+        return "<?php i18n('UNSAVED_INFORMATION'); ?>";
+      }
+    }
+  }
+  $('#edit').submit(function(){
+    notsubmit = false;
+  });
+<?php } ?>
+
   if ($.validator) {
     jQuery.extend(jQuery.validator.messages, {
       required: "<?php i18n('news_manager/FIELD_IS_REQUIRED'); ?>",

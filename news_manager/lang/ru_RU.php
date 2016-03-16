@@ -26,6 +26,7 @@ $i18n = array(
 "UPDATE_HTACCESS"     =>  "<b>Внимание:</b> Скопируйте код <a href=\"%s\">.htaccess</a> и замените его вручную!",
 
 # admin button (top-right)
+"NEWS_TAB"            =>  "Новости",
 "SETTINGS"            =>  "Настройки",
 "NEW_POST"            =>  "Создать новую запись",
 
@@ -121,9 +122,13 @@ $i18n = array(
 "LOCALE"              =>  "ru_RU.utf8,ru.utf8,ru_RU.UTF-8,ru.UTF-8,ru_RU,ru",
 
 # date settings - list of available parameters: http://php.net/strftime
-"DATE_FORMAT"         =>  "%d %b %Y",
+"DATE_FORMAT"         =>  "%e %EB %Y",
 "MONTHLY_FORMAT"      =>  "%B %Y",
-"YEARLY_FORMAT"       =>  "%Y"
+"YEARLY_FORMAT"       =>  "%Y",
+
+# custom month names
+"MONTHLIST"           =>  "Январь,Февраль,Март,Апрель,Май,Июнь,Июль,Август,Сентябрь,Октябрь,Ноябрь,Декабрь",
+"MONTHLIST_ALT"       =>  "января,февраля,марта,апреля,мая,июня,июля,августа,сентября,октября,ноября,декабря",
 
 );
 

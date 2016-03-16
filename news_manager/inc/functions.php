@@ -33,14 +33,24 @@ function nm_get_posts($all=false) {
  * @function nm_get_archives
  * @return array with monthly or yearly archives (keys) and post slugs (values)
  * @param $by month ('m') or year ('y'), default 'm' for monthly archives
+ * @param $tag (since 3.3) tag to filter by
  */
-function nm_get_archives($by='m') {
+function nm_get_archives($by='m', $tag=null) {
   $archives = array();
   $posts = nm_get_posts();
   $datefmt = ($by == 'y') ? 'Y' : 'Ym';
-  foreach ($posts as $post) {
-    $archive = date($datefmt, strtotime($post->date));
-    $archives[$archive][] = $post->slug;
+  if ($tag) {
+    foreach ($posts as $post) {
+      if (in_array($tag, explode(',', nm_lowercase_tags(strip_decode($post->tags))))) {
+        $archive = date($datefmt, strtotime($post->date));
+        $archives[$archive][] = $post->slug;
+      }
+    }
+  } else {
+    foreach ($posts as $post) {
+      $archive = date($datefmt, strtotime($post->date));
+      $archives[$archive][] = $post->slug;
+    }
   }
   return $archives;
 }
@@ -90,8 +100,39 @@ function nm_get_languages() {
  */
 function nm_get_date($format, $timestamp) {
   global $NMLANG, $i18n;
+
+  static $win = null;
+  if ($win === null)
+    $win = strtoupper(substr(PHP_OS, 0, 3)) == 'WIN';
+  
+  static $months = null;
+  if ($months === null) {
+    if (isset($i18n['news_manager/MONTHLIST'])) {
+      $months = explode(',',$i18n['news_manager/MONTHLIST']);
+      if (count($months) != 12) $months = false;
+    } else {
+        $months = false;
+    }
+  }
+  static $months_alt = null;
+  if ($months_alt === null) {
+    if (isset($i18n['news_manager/MONTHLIST_ALT'])) {
+      $months_alt = explode(',',$i18n['news_manager/MONTHLIST_ALT']);
+      if (count($months_alt) != 12) $months_alt = false;
+    } else {
+        $months_alt = false;
+    }
+  }
+  
+  $alt = strpos($format, '%EB') !== false;
+  if ($alt) {
+    $format = str_replace('%EB', '%B', $format);
+    $custom = !empty($months_alt);
+  } else {
+    $custom = !empty($months) && strpos($format, '%B') !== false;
+  }
+    
   $locale = setlocale(LC_TIME, 0);
-  // setlocale(LC_TIME, $NMLANG);
   if (array_key_exists('news_manager/LOCALE', $i18n)) {
     setlocale(LC_TIME, preg_split('/\s*,\s*/', trim($i18n['news_manager/LOCALE']), -1, PREG_SPLIT_NO_EMPTY));
   } else {
@@ -99,14 +140,30 @@ function nm_get_date($format, $timestamp) {
     $lg = substr($NMLANG,0,2);
     setlocale(LC_TIME, $NMLANG.'.utf8', $lg.'.utf8', $NMLANG.'.UTF-8', $lg.'.UTF-8', $NMLANG, $lg);
   }
-  if (strtoupper(substr(PHP_OS, 0, 3)) == 'WIN') {
+  if ($win) {
     # fixes for Windows
     $format = preg_replace('#(?<!%)((?:%%)*)%e#', '\1%#d', $format); // strftime %e parameter not supported
     $date = utf8_encode(strftime($format, $timestamp)); // strftime returns ISO-8859-1 encoded string
   } else {
     $date = strftime($format, $timestamp);
   }
+  
+  if ($custom) {
+    $m = intval(strftime('%m', $timestamp));
+    if ($m > 0 && $m < 13) {
+      $orig = $win ? utf8_encode(strftime('%B', $timestamp)) : strftime('%B', $timestamp);
+    } else {
+      $custom = false;
+    }
+  }
+
   setlocale(LC_TIME, $locale);
+  
+  if ($custom) {
+    $replace = $alt ? $months_alt[$m-1] : $months[$m-1];
+    $date = str_replace($orig, $replace, $date);
+  }
+
   return $date;
 }
 
@@ -375,23 +432,40 @@ function nm_make_excerpt($content, $len=200, $ellipsis='', $break=false) {
 
 /*******************************************************
  * @function nm_i18n_merge
- * @action update the $i18n language array (frontend)
+ * @action update the $i18n language array
+ * @param $backend (since 3.3) if true, use current GS language - else use NM front-end language
  */
-function nm_i18n_merge() {
-  global $NMLANG;
-  if (isset($NMLANG) && $NMLANG != '') {
-    if (dirname(realpath(NMLANGPATH.$NMLANG.'.php')) != realpath(NMLANGPATH)) die(''); // path traversal
-    include(NMLANGPATH.$NMLANG.'.php');
-    global $nm_i18n;
-    if ($nm_i18n) {
-      $nm_i18n = array_merge($i18n, $nm_i18n); // merge custom array
+function nm_i18n_merge($backend = false) {
+  if ($backend) {
+    global $LANG;
+    if (file_exists(NMLANGPATH.$LANG.'.php')) {
+      $lang = $LANG;
     } else {
-      $nm_i18n = $i18n;
+      $files = glob(NMLANGPATH.substr($LANG,0,2).'*.php');
+      $fallback = reset($files);
+      $lang = $fallback ? basename($fallback, '.php') : 'en_US';
     }
-    global $i18n;
-    foreach ($nm_i18n as $code=>$text)
-      $i18n['news_manager/' . $code] = $text;
+  } else {
+    # frontend
+    global $NMLANG;
+    $lang = $NMLANG ? $NMLANG : null;
   }
+  if ($lang && file_exists(NMLANGPATH.$lang.'.php')) {
+    if (dirname(realpath(NMLANGPATH.$lang.'.php')) != realpath(NMLANGPATH)) die(''); // path traversal
+    include(NMLANGPATH.$lang.'.php');
+  } else {
+    $i18n = array();
+  }
+  global $nm_i18n;
+  if ($nm_i18n) {
+    $nm_i18n = array_merge($i18n, $nm_i18n);
+  } else {
+    $nm_i18n = $i18n;
+  }
+  # add to global $i18n array
+  global $i18n;
+  foreach ($nm_i18n as $code=>$text)
+    $i18n['news_manager/'.$code] = $text;
 }
 
 
@@ -565,13 +639,6 @@ function nm_patch_i18n_url($url) {
 
 ## since 3.2
 
-function nm_get_fallback_lang() {
-  global $LANG;
-  $files = glob(NMLANGPATH.substr($LANG,0,2).'*.php');
-  $fallback = reset($files);
-  return $fallback ? basename($fallback, '.php') : 'en_US';
-}
-
 function nm_post_files_differ(&$posts) {
   $slugs = $files = array();
   foreach ($posts as $post)
@@ -579,6 +646,37 @@ function nm_post_files_differ(&$posts) {
   foreach (glob(NMPOSTPATH.'*.xml') as $file)
     $files[] = basename($file, '.xml');
   return (count($files) != count($slugs) || count(array_diff($slugs, $files)) > 0);
+}
+
+## since 3.3
+
+function nm_add_mu_permissions() {
+  if (function_exists('add_mu_permission')) {
+    add_mu_permission('news_manager_settings',i18n_r('news_manager/NM_SETTINGS'));
+  }
+}
+
+function nm_allow_settings() {
+  global $USR;
+  if (function_exists('check_user_permission'))
+    return check_user_permission($USR, 'news_manager_settings');
+  else
+    return true;
+}
+
+// patch for Multi User 1.8.2
+function nm_update_mu_landing_dropdown() {
+  if (function_exists('mm_admin'))
+    if (basename($_SERVER['PHP_SELF']) == 'load.php' && isset($_GET['id']) && $_GET['id'] == 'user-managment') {
+      ?>
+      <script>
+      $('select[id="userland"]').append($('<option>', {
+         text: '<?php i18n('news_manager/PLUGIN_NAME'); ?>',
+         value: 'load.php?id=news_manager'
+      }));
+      </script>
+      <?php
+  }
 }
 
 ?>

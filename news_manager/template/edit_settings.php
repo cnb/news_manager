@@ -24,7 +24,7 @@
         $option = ($slug != '') ? $slug : '-';
         echo '<option value="',$slug,'"';
         if ($slug == $NMPAGEURL) echo ' selected="selected"';
-        echo '>',$option,'</option>',PHP_EOL;
+        echo '>',$option,'</option>',"\n";
       }
       ?>
       </select>
@@ -222,6 +222,11 @@
     } else {
       $('#customsettings').hide();
     }
+
+<?php if (!defined('NMWARNUNSAVED') || NMWARNUNSAVED) { ?>
+    $('form').areYouSure({'message':'<?php i18n('UNSAVED_INFORMATION'); ?>'});
+<?php } ?>
+
   });
 
   $('#images').change(function(){

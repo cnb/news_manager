@@ -4,6 +4,7 @@
  * CKEditor template
  */
 
+global $TEMPLATE, $SITEURL;
 
 $EDHEIGHT = defined('GSEDITORHEIGHT') ? GSEDITORHEIGHT.'px' : '300px';
 $EDTOOL = defined('GSEDITORTOOL') ? GSEDITORTOOL : 'basic';
@@ -11,21 +12,20 @@ $EDLANG = defined('GSEDITORLANG') ? GSEDITORLANG : i18n_r('CKEDITOR_LANG');
 $EDOPTIONS = defined('GSEDITOROPTIONS') && trim(GSEDITOROPTIONS) != '' ? ', '.GSEDITOROPTIONS : '';
 
 if ($EDTOOL == 'advanced') {
-  $TOOLBAR = "
+  $TOOLBAR = "[
     ['Bold', 'Italic', 'Underline', 'NumberedList', 'BulletedList', 'JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock', 'Table', 'TextColor', 'BGColor', 'Link', 'Unlink', 'Image', 'RemoveFormat', 'Source'],
     '/',
     ['Styles','Format','Font','FontSize']
-  ";
+  ]";
 } elseif ($EDTOOL == 'basic') {
-  $TOOLBAR = "['Bold', 'Italic', 'Underline', 'NumberedList', 'BulletedList', 'JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock', 'Link', 'Unlink', 'Image', 'RemoveFormat', 'Source']";
+  $TOOLBAR = "[['Bold', 'Italic', 'Underline', 'NumberedList', 'BulletedList', 'JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock', 'Link', 'Unlink', 'Image', 'RemoveFormat', 'Source']]";
+} elseif (strpos($EDTOOL, '[') === false) {
+  $TOOLBAR = "'$EDTOOL'";
 } else {
-  $TOOLBAR = GSEDITORTOOL;
+  $TOOLBAR = "[$EDTOOL]";
 }
 
-global $HTMLEDITOR, $TEMPLATE, $SITEURL;
-if (isset($_GET['id']) and $_GET['id'] == "news_manager") {
-  if (isset ($HTMLEDITOR) && $HTMLEDITOR != '') {
-    ?>
+?>
     <script type="text/javascript" src="template/js/ckeditor/ckeditor.js"></script>
     <script type="text/javascript">
       var editor = CKEDITOR.replace('post-content', {
@@ -45,21 +45,13 @@ if (isset($_GET['id']) and $_GET['id'] == "news_manager") {
         uiColor : '#FFFFFF',
         height: '<?php echo $EDHEIGHT; ?>',
         baseHref : '<?php echo $SITEURL; ?>',
-        toolbar :
-        [
-        <?php echo $TOOLBAR; ?>
-        ]
-        <?php echo $EDOPTIONS; ?>,
         tabSpaces:10,
         filebrowserBrowseUrl : 'filebrowser.php?type=all',
         filebrowserImageBrowseUrl : 'filebrowser.php?type=images',
         filebrowserWindowWidth : '730',
-        filebrowserWindowHeight : '500'
+        filebrowserWindowHeight : '500',
+        toolbar : <?php echo $TOOLBAR; ?>
+        <?php echo $EDOPTIONS; ?>
       });
       linkdefault = 'url';
     </script>
-    <?php
-  }
-}
-
-?>

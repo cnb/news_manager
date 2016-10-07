@@ -15,7 +15,7 @@ function nm_show_page($index=NMFIRSTPAGE, $filter=true) {
   global $NMPOSTSPERPAGE, $nmoption;
   $p1 = intval(NMFIRSTPAGE);
   $index = intval($index);
-  $posts = nm_get_posts();
+  $posts = nm_get_posts_default();
   $pages = array_chunk($posts, intval($NMPOSTSPERPAGE), true);
   if ($index >= $p1 && $index-$p1 < sizeof($pages))
     $posts = $pages[$index-$p1];
@@ -190,15 +190,6 @@ function nm_show_search_results() {
 function nm_reset_options($pagetype='') {
   global $nmoption, $NMSETTING, $NMSHOWEXCERPT;
   $nmoption = array();
-
-  # pre 3.0 default settings (plus readmore in common.php)
-  if (defined('NM2COMPAT') && NM2COMPAT) {
-    $nmoption['breakwords'] = true;
-    $nmoption['titletag'] = false;
-    $nmoption['navoldnew'] = true;
-    $nmoption['markupnavitem'] = 'div';
-    if (!defined('NMFIRSTPAGE')) define('NMFIRSTPAGE',0);
-  }
 
   # title link
   $nmoption['titlelink'] = ($NMSETTING['titlelink']=='Y' || ($NMSETTING['titlelink']=='P' && $pagetype != 'single'));
@@ -584,7 +575,7 @@ function nm_show_navigation($index, $total, $tag=null) {
     $prevnext = nm_get_option('navprevnext', '1');
     $showalways = (strtolower($prevnext[0]) == 'a'); // navPrevNext a[lways]
     if ($prevnext && $index > $p1) {
-      echo "<$item",nm_class_attr($clprev),"><a href=\"";
+      echo " <$item",nm_class_attr($clprev),"><a href=\"";
       echo $index > $p1+1 ? $page.($index-1) : $first;
       echo "\" title=\"",i18n_r('news_manager/PREV_TITLE'),'">',i18n_r('news_manager/PREV_TEXT'),"</a></$item>\n";
     } else {
@@ -593,13 +584,35 @@ function nm_show_navigation($index, $total, $tag=null) {
     }
 
     if (nm_get_option('navnumber',true)) {
+      $end = nm_get_option('navendsize',1);
+      $mid = nm_get_option('navmidsize',2);
+      if (nm_get_option('navfixsize',true)) {
+        # if near one of the two ends, adjust $mid to keep fixed number of items
+        if ($index-$p1 <= $mid+$end) {
+          $mid = $mid*2+$end-($index-$p1);
+        } elseif ($index-$p1 >= $total-1-($mid+$end)) {
+          $mid = $mid*2+$end-($total-1-($index-$p1));
+        }
+      }
+      $ellipsis = nm_get_option('navellipsis','...');
+      $clellipsis = nm_clean_classes(nm_get_option('classnavellipsis','ellipsis'));
+      $gap = false;
       for ($i = 0; $i < $total; $i++) {
         if ($i+$p1 == $index) {
           echo " <$item",nm_class_attr($clcurrent),"><span>",$i+1,"</span></$item>\n";
+          $gap = false;
         } else {
-          echo " <$item><a href=\"";
-          echo $i == 0 ? $first : $page.($i+$p1);
-          echo "\">",$i+1,"</a></$item>\n";
+          if ( ($i+$p1 >= $index-$mid && $i+$p1 <= $index+$mid) || $i <= $end-1 || $i >= $total-$end) {
+            echo " <$item><a href=\"";
+            echo $i == 0 ? $first : $page.($i+$p1);
+            echo "\">",$i+1,"</a></$item>\n";
+            $gap = false;
+          } else {
+            if (!$gap) {
+              echo " <$item",nm_class_attr($clellipsis),">$ellipsis</$item>\n";
+              $gap = true;
+            }
+          }
         }
       }
     }
@@ -711,7 +724,8 @@ function nm_post_excerpt($len=null, $ellipsis=null, $echo=true) {
   if (isset($nmdata['content']) && $nmdata['content']) {
     if (!$len) $len = isset($nmoption['excerptlength']) ? $nmoption['excerptlength'] : $NMEXCERPTLENGTH; // workaround(*)
     if (!$ellipsis && $ellipsis !== '') $ellipsis = i18n_r('news_manager/ELLIPSIS');
-    $excerpt = nm_make_excerpt($nmdata['content'], $len, $ellipsis);
+    $break = nm_get_option('breakwords');
+    $excerpt = nm_make_excerpt($nmdata['content'], $len, $ellipsis, $break);
     if ($echo) echo $excerpt;
     return $excerpt;
   } else {

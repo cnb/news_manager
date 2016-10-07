@@ -37,9 +37,9 @@ function nm_get_posts($all=false) {
  */
 function nm_get_archives($by='m', $tag=null) {
   $archives = array();
-  $posts = nm_get_posts();
   $datefmt = ($by == 'y') ? 'Y' : 'Ym';
   if ($tag) {
+    $posts = nm_get_posts();
     foreach ($posts as $post) {
       if (in_array($tag, explode(',', nm_lowercase_tags(strip_decode($post->tags))))) {
         $archive = date($datefmt, strtotime($post->date));
@@ -47,6 +47,7 @@ function nm_get_archives($by='m', $tag=null) {
       }
     }
   } else {
+    $posts = nm_get_posts_default();
     foreach ($posts as $post) {
       $archive = date($datefmt, strtotime($post->date));
       $archives[$archive][] = $post->slug;
@@ -94,76 +95,88 @@ function nm_get_languages() {
 
 /*******************************************************
  * @function nm_get_date
- * @param $format date format
+ * @param $format strftime or date format
  * @param $timestamp UNIX timestamp
- * @return date formatted according to $NMLANG
+ * @return date formatted according to $NMLANG (if strftime)
  */
 function nm_get_date($format, $timestamp) {
-  global $NMLANG, $i18n;
+  if (strpos($format, '%') !== false) {
 
-  static $win = null;
-  if ($win === null)
-    $win = strtoupper(substr(PHP_OS, 0, 3)) == 'WIN';
-  
-  static $months = null;
-  if ($months === null) {
-    if (isset($i18n['news_manager/MONTHLIST'])) {
-      $months = explode(',',$i18n['news_manager/MONTHLIST']);
-      if (count($months) != 12) $months = false;
-    } else {
-        $months = false;
-    }
-  }
-  static $months_alt = null;
-  if ($months_alt === null) {
-    if (isset($i18n['news_manager/MONTHLIST_ALT'])) {
-      $months_alt = explode(',',$i18n['news_manager/MONTHLIST_ALT']);
-      if (count($months_alt) != 12) $months_alt = false;
-    } else {
-        $months_alt = false;
-    }
-  }
-  
-  $alt = strpos($format, '%EB') !== false;
-  if ($alt) {
-    $format = str_replace('%EB', '%B', $format);
-    $custom = !empty($months_alt);
-  } else {
-    $custom = !empty($months) && strpos($format, '%B') !== false;
-  }
+    # strftime format
     
-  $locale = setlocale(LC_TIME, 0);
-  if (array_key_exists('news_manager/LOCALE', $i18n)) {
-    setlocale(LC_TIME, preg_split('/\s*,\s*/', trim($i18n['news_manager/LOCALE']), -1, PREG_SPLIT_NO_EMPTY));
-  } else {
-    # no locale in language file
-    $lg = substr($NMLANG,0,2);
-    setlocale(LC_TIME, $NMLANG.'.utf8', $lg.'.utf8', $NMLANG.'.UTF-8', $lg.'.UTF-8', $NMLANG, $lg);
-  }
-  if ($win) {
-    # fixes for Windows
-    $format = preg_replace('#(?<!%)((?:%%)*)%e#', '\1%#d', $format); // strftime %e parameter not supported
-    $date = utf8_encode(strftime($format, $timestamp)); // strftime returns ISO-8859-1 encoded string
-  } else {
-    $date = strftime($format, $timestamp);
-  }
-  
-  if ($custom) {
-    $m = intval(strftime('%m', $timestamp));
-    if ($m > 0 && $m < 13) {
-      $orig = $win ? utf8_encode(strftime('%B', $timestamp)) : strftime('%B', $timestamp);
-    } else {
-      $custom = false;
+    global $NMLANG, $i18n;
+    static $win = null;
+    if ($win === null)
+      $win = strtoupper(substr(PHP_OS, 0, 3)) == 'WIN';
+    
+    static $months = null;
+    if ($months === null) {
+      if (isset($i18n['news_manager/MONTHLIST'])) {
+        $months = explode(',',$i18n['news_manager/MONTHLIST']);
+        if (count($months) != 12) $months = false;
+      } else {
+          $months = false;
+      }
     }
-  }
+    static $months_alt = null;
+    if ($months_alt === null) {
+      if (isset($i18n['news_manager/MONTHLIST_ALT'])) {
+        $months_alt = explode(',',$i18n['news_manager/MONTHLIST_ALT']);
+        if (count($months_alt) != 12) $months_alt = false;
+      } else {
+          $months_alt = false;
+      }
+    }
+    
+    $alt = strpos($format, '%EB') !== false;
+    if ($alt) {
+      $format = str_replace('%EB', '%B', $format);
+      $custom = !empty($months_alt);
+    } else {
+      $custom = !empty($months) && strpos($format, '%B') !== false;
+    }
+      
+    $locale = setlocale(LC_TIME, 0);
+    if (array_key_exists('news_manager/LOCALE', $i18n)) {
+      setlocale(LC_TIME, preg_split('/\s*,\s*/', trim($i18n['news_manager/LOCALE']), -1, PREG_SPLIT_NO_EMPTY));
+    } else {
+      # no locale in language file
+      $lg = substr($NMLANG,0,2);
+      setlocale(LC_TIME, $NMLANG.'.utf8', $lg.'.utf8', $NMLANG.'.UTF-8', $lg.'.UTF-8', $NMLANG, $lg);
+    }
+    if ($win) {
+      # fixes for Windows
+      $format = preg_replace('#(?<!%)((?:%%)*)%e#', '\1%#d', $format); // strftime %e parameter not supported
+      $date = utf8_encode(strftime($format, $timestamp)); // strftime returns ISO-8859-1 encoded string
+    } else {
+      $date = strftime($format, $timestamp);
+    }
+    
+    if ($custom) {
+      $m = intval(strftime('%m', $timestamp));
+      if ($m > 0 && $m < 13) {
+        $orig = $win ? utf8_encode(strftime('%B', $timestamp)) : strftime('%B', $timestamp);
+      } else {
+        $custom = false;
+      }
+    }
 
-  setlocale(LC_TIME, $locale);
+    setlocale(LC_TIME, $locale);
+    
+    if ($custom) {
+      $replace = $alt ? $months_alt[$m-1] : $months[$m-1];
+      $date = str_replace($orig, $replace, $date);
+    }
+
+  } else {
+
+    # date() format
   
-  if ($custom) {
-    $replace = $alt ? $months_alt[$m-1] : $months[$m-1];
-    $date = str_replace($orig, $replace, $date);
-  }
+    global $TIMEZONE;
+    if ($TIMEZONE != '') date_default_timezone_set($TIMEZONE);
+    $date = date($format, $timestamp);
 
+  }
   return $date;
 }
 
@@ -470,37 +483,11 @@ function nm_i18n_merge($backend = false) {
 
 
 /*******************************************************
- * @function nm_sitemap_include
- * @action add posts to sitemap.xml, for GetSimple 3.0 only
- */
-function nm_sitemap_include() {
-  global $NMPAGEURL, $page, $xml;
-  if (strval($page['url']) == $NMPAGEURL) {
-    $posts = nm_get_posts();
-    foreach ($posts as $post) {
-      $url = nm_get_url('post').$post->slug;
-      $file = NMPOSTPATH.$post->slug.'.xml';
-      $date = makeIso8601TimeStamp(date('Y-m-d H:i:s', filemtime($file)));
-      $item = $xml->addChild('url');
-      $item->addChild('loc', $url);
-      $item->addChild('lastmod', $date);
-      $item->addChild('changefreq', 'monthly');
-      $item->addChild('priority', '0.5');
-    }
-  }
-}
-
-
-/*******************************************************
  * @function nm_header_include
  * @action insert necessary script/style sections into site header
  */
 function nm_header_include() {
   if (isset($_GET['id']) && $_GET['id'] == 'news_manager' && (isset($_GET['edit']) || isset($_GET['settings']))) {
-    if (!function_exists('register_script')) {
-      // for GetSimple 3.0
-      echo '<script type="text/javascript" src="//ajax.aspnetcdn.com/ajax/jquery.validate/1.10.0/jquery.validate.min.js"></script>';
-    }
   ?>
   <style>
     .invalid {
@@ -676,6 +663,32 @@ function nm_update_mu_landing_dropdown() {
       }));
       </script>
       <?php
+  }
+}
+
+# since 3.4
+
+# returns array excluding posts having certain tags
+# - to be used in non-tag pages -main, archives- and some sidebar functions
+# - temporary solution, will eventually be replaced/refactored
+function nm_get_posts_default() {
+  if (!defined('NMDEFAULTEXCLUDETAGGED')) {
+    return nm_get_posts();
+  } else {
+    static $posts = null; // lazy init...
+    if ($posts === null) {
+      $posts = nm_get_posts();
+      $tags = nm_lowercase_tags(NMDEFAULTEXCLUDETAGGED);
+      $tags = explode(',', trim(preg_replace(array('/\s+/','/\s*,\s*/','/,+/'),array(' ',',',','), $tags), ' ,'));
+      foreach ($posts as $k => $post)
+        foreach (explode(',', nm_lowercase_tags(strip_decode($post->tags))) as $tag)
+          if (in_array($tag, $tags)) {
+            unset($posts[$k]);
+            break;
+          }
+
+    }
+    return $posts;
   }
 }
 

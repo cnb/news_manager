@@ -364,6 +364,9 @@ function nm_reset_options($pagetype='') {
     ) as $key=>$value)
     $nmoption[$key] = !isset($nmoption[$key]) ? $value : nm_clean_classes($value.' '.$nmoption[$key]);
 
+  # force full content if single post
+  $nmoption['fullcontent'] = ($pagetype == 'single');
+
 }
 
 
@@ -383,7 +386,7 @@ function nm_show_post($slug, $showexcerpt=false, $filter=true, $single=false) {
     $post = @getXML($file);
   if (!empty($post) && ($post->private != 'Y' || ($single && function_exists('is_logged_in') && is_logged_in()))) {
     $url     = nm_get_url('post') . $slug;
-    $title   = stripslashes($post->title);
+    $title   = strip_decode($post->title);
     $unixtime = strtotime($post->date);
     $date    = nm_get_date(i18n_r('news_manager/DATE_FORMAT'), $unixtime);
     $content = strip_decode($post->content);
@@ -404,9 +407,9 @@ function nm_show_post($slug, $showexcerpt=false, $filter=true, $single=false) {
           echo '    <',$nmoption['markupposttitle'],' class="',$nmoption['classposttitle'],'">';
           if ($nmoption['titlelink']) {
             $class = $nmoption['classposttitlelink'] ? ' class="'.$nmoption['classposttitlelink'].'"' : '';
-            echo '<a',$class,' href="',$url,'">',$title,'</a>';
+            echo '<a',$class,' href="',$url,'">',htmlspecialchars($title),'</a>';
           } else {
-            echo $title;
+            echo htmlspecialchars($title);
           }
           echo '</',$nmoption['markupposttitle'],'>',"\n";
           break;
@@ -417,7 +420,7 @@ function nm_show_post($slug, $showexcerpt=false, $filter=true, $single=false) {
 
         case 'content':
           echo '    <',$nmoption['markuppostcontent'],' class="',$nmoption['classpostcontent'],'">';
-          if ($single) {
+          if ($nmoption['fullcontent']) {
             echo $content;
           } else {
             $slice = '';
@@ -666,7 +669,7 @@ function nm_show_navigation($index, $total, $tag=null) {
 function nm_post_title($before='', $after='', $echo=true) {
   global $nmdata;
   if (isset($nmdata['title']) && $nmdata['title']) {
-    $title = $before.$nmdata['title'].$after;
+    $title = $before.htmlspecialchars($nmdata['title'], ENT_QUOTES).$after;
     if ($echo) echo $title;
     return $title;
   } else {
@@ -695,14 +698,14 @@ function nm_post_slug($echo=true) {
 /*******************************************************
  * @function nm_post_url
  * @param $echo Display (true) or return (false)
- * @action Display or return the post URL
+ * @action Display or return the post URL (ampersands escaped since 3.5)
  * @return URL or false if not on single post page
  * @since 3.0
  */
 function nm_post_url($echo=true) {
   global $nmdata;
   if (isset($nmdata['url']) && $nmdata['url']) {
-    $url = $nmdata['url'];
+    $url = htmlspecialchars($nmdata['url']);
     if ($echo) echo $url;
     return $url;
   } else {
@@ -924,7 +927,7 @@ function nm_clean_markup($str) {
 // remove invalid chars in custom CSS class selectors
 function nm_clean_classes($str) {
   return trim(str_replace(array(
-    '~','!','@','$','%','^','&','*','(',')','+','=',',','.','/',
+    '~','@','^','&','*','+','=',',','.','/', // '!','$','%','(',')',
     '\'',';',':','"','?','>','<','[',']','\\','{','}','|','`','#'
     ), '', $str));
 }
@@ -963,4 +966,30 @@ function nm_post_date($fmt='', $echo=true) {
   }
 }
 
-?>
+/***** since 3.5 *****/
+
+function nm_get_header() {
+  nm_fix_get_header_full();
+}
+
+function nm_get_i18n_header($full=true, $omit=null) {
+  nm_fix_get_header_full('get_i18n_header', $omit);
+}
+
+function nm_fix_get_header_full($function='get_header', $param2=null) {
+  // TODO: paginated, etc.
+  $canonical = false;
+  if (nm_is_single())
+    $canonical = nm_post_url(false);
+  elseif (nm_is_tag())
+    $canonical = nm_get_url('tag').rawurlencode(nm_single_tag_title('','',false));
+  elseif (nm_is_archive())
+    $canonical = nm_get_url('archive').intval($_GET[NMPARAMARCHIVE]);
+  if ($canonical) {
+    $function(false, $param2);
+    echo '<link rel="canonical" href="',$canonical,'" />',"\n";
+  } else {
+    $function(true, $param2);
+  }
+}
+

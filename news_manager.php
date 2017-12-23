@@ -3,14 +3,14 @@
 /*
 Plugin Name: News Manager
 Description: A blog/news plugin for GetSimple
-Version: 3.5
+Version: 3.6
 Original author: Rogier Koppejan
 Updated by: Carlos Navarro
 
 */
 
 # plugin version
-define('NMVERSION', '3.5');
+define('NMVERSION', '3.6');
 
 $nmtab = (defined('NMTAB') && NMTAB) ? 'news_manager' : 'pages';
 
@@ -65,6 +65,12 @@ if (isset($_GET['id']) && $_GET['id'] == 'news_manager' && (isset($_GET['edit'])
   if (!defined('NMWARNUNSAVED') || NMWARNUNSAVED) {
     register_script('jquery-areyousure', $SITEURL.'plugins/news_manager/js/jquery.are-you-sure.js', '1.9.0', false);
     queue_script('jquery-areyousure', GSBACK);
+  }
+  if (!defined('NMDATETIMEPICKER') || NMDATETIMEPICKER) {
+    register_script('jquery-datetimepicker', $SITEURL.'plugins/news_manager/js/datetimepicker/jquery.datetimepicker.full.min.js', '2.5.14', false);
+    queue_script('jquery-datetimepicker', GSBACK);
+    register_style('jquery-datetimepicker', $SITEURL.'plugins/news_manager/js/datetimepicker/jquery.datetimepicker.css', NMVERSION, 'screen');
+    queue_style('jquery-datetimepicker', GSBACK);
   }
 }
 
@@ -157,10 +163,9 @@ function nm_frontend_init() {
         $result = nm_show_post($_GET[NMPARAMPOST], false, false, true);
         if ($result) {
           $nmpagetype[] = 'single';
+          nm_update_meta_description();
           if (nm_get_option('metakeywordstags'))
             nm_update_meta_keywords();
-          if (nm_get_option('autometad'))
-            $metad = nm_post_excerpt(150, null, false);
         }
 
     } elseif (isset($_GET[NMPARAMPAGE]) && intval($_GET[NMPARAMPAGE]) != NMFIRSTPAGE) {

@@ -329,7 +329,7 @@ function nm_rename_file($oldfile,$newfile) {
 function nm_create_slug($str) {
   global $i18n;
   $str = trim($str);
-  if (isset($i18n['TRANSLITERATION']) && is_array($translit=$i18n['TRANSLITERATION']) && count($translit>0)) {
+  if (isset($i18n['TRANSLITERATION']) && is_array($translit=$i18n['TRANSLITERATION']) && !empty($translit)) {
     $str = str_replace(array_keys($translit),array_values($translit),$str);
   }
   $str = to7bit($str, 'UTF-8');
@@ -420,7 +420,7 @@ function nm_make_excerpt($content, $len=200, $ellipsis='', $break=false) {
       if ($break)
         $content = mb_substr($content, 0, $len, 'UTF-8');
       else
-        $content = mb_substr($content, 0, mb_strrpos(mb_substr($content, 0, $len+1, 'UTF-8'), ' ', 'UTF-8'), 'UTF-8');
+        $content = mb_substr($content, 0, mb_strrpos(mb_substr($content, 0, $len+1, 'UTF-8'), ' ', 0, 'UTF-8'), 'UTF-8');
       $content .= $ellipsis;
     }
   } else {
